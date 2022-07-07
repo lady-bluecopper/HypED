@@ -1,8 +1,8 @@
 package eu.centai.hypeq.oracle.structures;
 
 import com.google.common.collect.Maps;
-import eu.centai.hypeq.structures.HyperGraph;
 import java.util.Map;
+import java.util.Set;
 import org.javatuples.Triplet;
 
 /**
@@ -54,24 +54,30 @@ public class DistanceProfile {
     /**
      * Populate the distance profile of p and q.Method used when the distance profile regards hyperedges.
      * 
-     * @param graph hypergraph
+     * @param vMap for each vertex, the set of hyperedges including that vertex
      * @param oracle distance oracle
      * @param maxS max s-distance to search
      * @param lb min component size
      * @param kind it indicates if p and q are (i) vertices, (ii) edges, (iii) one 
      * vertex and one edge
      */
-    public void createDistanceProfile(HyperGraph graph, DistanceOracle oracle, int maxS, int lb, String kind) {
+    public void createDistanceProfile(
+            Map<Integer, Set<Integer>> vMap, 
+            DistanceOracle oracle, 
+            int maxS, 
+            int lb, 
+            String kind) {
+
         for (int s = 1; s <= maxS; s++) {
             switch (kind) {
                 case "edge":
                     distances.put(s, oracle.getApproxSDistanceBetween(p, q, s, lb));
                     break;
                 case "vertex":
-                    distances.put(s, oracle.getApproxSDistanceBetweenVertices(graph, p, q, s, lb));
+                    distances.put(s, oracle.getApproxSDistanceBetweenVertices(vMap, p, q, s, lb));
                     break;
                 default:
-                    distances.put(s, oracle.getApproxSDistanceBetweenVE(graph, p, q, s, lb));
+                    distances.put(s, oracle.getApproxSDistanceBetweenVE(vMap, p, q, s, lb));
                     break;
             }
         }

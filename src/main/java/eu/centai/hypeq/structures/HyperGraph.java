@@ -31,14 +31,12 @@ import org.javatuples.Pair;
  */
 public class HyperGraph {
 
-    private final Set<Integer> vertices;
     private final List<HyperEdge> hyperedges;
     // for each vertex v, set of hyperedges including v
     private final Map<Integer, Set<Integer>> vertexMap;
     private int dimension;
 
     public HyperGraph(List<HyperEdge> edges, boolean initializeOverlaps) {
-        this.vertices = Sets.newHashSet();
         this.hyperedges = edges;
         this.vertexMap = Maps.newHashMap();
         initializeVertexMap();
@@ -49,7 +47,6 @@ public class HyperGraph {
 
     private void initializeVertexMap() {
         hyperedges.stream().forEach(edge -> {
-            this.vertices.addAll(edge.getVertices());
             this.dimension = Math.max(dimension, edge.getNumVertices());
             for (int v : edge.getVertices()) {
                 Set<Integer> memb = this.vertexMap.getOrDefault(v, Sets.newHashSet());
@@ -57,7 +54,7 @@ public class HyperGraph {
                 this.vertexMap.put(v, memb);
             }
         });
-        System.out.println("V=" + vertices.size() + 
+        System.out.println("V=" + vertexMap.size() + 
                 ", E=" + hyperedges.size() + 
                 ", d=" + dimension);
     }
@@ -204,18 +201,26 @@ public class HyperGraph {
 
     /**
      *
-     * @return vertices in the hypergraph
-     */
-    public Set<Integer> getVertices() {
-        return vertices;
-    }
-
-    /**
-     *
      * @return number of distinct vertices in the hypergraph
      */
     public int getNumVertices() {
-        return vertices.size();
+        return vertexMap.size();
+    }
+    
+    /**
+     * 
+     * @return for each vertex, the set of hyperedges including that vertex
+     */
+    public Map<Integer, Set<Integer>> getVertexMap() {
+        return vertexMap;
+    }
+    
+    /**
+     * 
+     * @return set of vertices in this hypergraph
+     */
+    public Set<Integer> getVertices() {
+        return vertexMap.keySet();
     }
 
     /**
@@ -903,55 +908,6 @@ public class HyperGraph {
             }
             return profiles.entrySet().stream();
         }).collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
-    }
-
-    /**
-     * @param candidates ids of candidates
-     * @param sampleSize number of pairs to sample
-     * @param rnd for reproducibility
-     * @return a sample of pairs of candidates
-     */
-    public Set<Pair<Integer, Integer>> samplePairs(List<Integer> candidates, 
-            int sampleSize, 
-            Random rnd) {
-        // each triplet: ids of the items selected and size of the cc
-        Set<Pair<Integer, Integer>> sample = Sets.newHashSet();
-        // create pairs using candidate items
-        List<Integer> items = selectItems(sampleSize, candidates, rnd);
-        for (int i = 0; i < items.size() - 1; i += 2) {
-            sample.add(new Pair<>(items.get(i), items.get(i + 1)));
-        }
-        if (items.size() % 2 != 0) {
-            sample.add(new Pair<>(items.get(0), items.get(items.size() - 1)));
-        }
-        return sample;
-    }
-
-    /**
-     * Method used to sample random hyperedges from a list of candidates.
-     *
-     * @param numItems number of hyperedges to select
-     * @param candidates ids of candidate hyperedges
-     * @param rnd for reproducibility
-     * @return hyperedges selected from candidates
-     */
-    private List<Integer> selectItems(int numItems, 
-            List<Integer> candidates, 
-            Random rnd) {
-        // if candidates does not include at least 2 hyperedges
-        // return empty
-        if (candidates.size() < 2 || numItems == 0) {
-            return Lists.newArrayList();
-        }
-        if (candidates.size() == numItems) {
-            return Lists.newArrayList(candidates);
-        }
-        // initialize structures
-        Set<Integer> items = Sets.newHashSet();
-        while (items.size() < numItems) {
-            items.add(candidates.get(rnd.nextInt(candidates.size())));
-        }
-        return Lists.newArrayList(items);
     }
 
     public void printVertexMap() {

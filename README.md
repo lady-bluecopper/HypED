@@ -28,6 +28,9 @@ You can use HypED either by running the script *run.sh* included in this package
 
 	java -cp HypED.jar:lib/* eu.centai.hypeq.test.EvaluateQueryTime dataFolder=<input_data> outputFolder=<output_data> dataFile=<file_name> numLandmarks=<num_landmarks> samplePerc=<ratio_of_hyperedges_to_sample> landmarkSelection=<strategy_to_select_landmarks> numQueries=<number_of_random_queries_to_test> store=<whether_the_oracle_should_be_stored_on_disk>  landmarkAssignment=<landmark_assignment_strategy> lb=<min_cc_size> maxS=<max_min_overlap> alpha=<alpha> beta=<beta> seed=<seed> isApproximate=<whether_exact_distances_should_be_computed_as_well> kind=<type_of_query>
 
+The command evaluates the performance of HypED on a set of *numQueries* random queries. To evaluate the performance of the algorithm on a specific set of queries, such queries must be stored in a space-separated file, given in input with the option *queryFile=<file_name>*. 
+The code assumes that the query file is located in the same folder where the graph file is located.
+
 ### Using the Script
 
 The value of each parameter used by HypED must be set in the configuration file *config.cfg*:

@@ -27,6 +27,8 @@ public class CMDLParser {
             Settings.outputFolder = value;
         } else if (key.compareToIgnoreCase("dataFile") == 0) {
             Settings.dataFile = value;
+        } else if (key.compareToIgnoreCase("queryFile") == 0) {
+            Settings.queryFile = value;
         } else if (key.compareToIgnoreCase("store") == 0) {
             Settings.store = Boolean.valueOf(value);
         } else if (key.compareToIgnoreCase("numLandmarks") == 0) {

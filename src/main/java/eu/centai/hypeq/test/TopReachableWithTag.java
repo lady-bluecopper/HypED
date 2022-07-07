@@ -42,7 +42,7 @@ public class TopReachableWithTag {
         List<List<Integer>> sampleList = Helper.sampleByTag(labels, 5);
         List<Integer> sample = sampleList.stream().flatMap(l -> l.stream()).collect(Collectors.toList());
         // create oracle
-        Triplet<DistanceOracle, ConnectedComponents, Long> oracleP = Helper.getDistanceOracle(graph, maxD);
+        Pair<DistanceOracle, Long> oracleP = Helper.getDistanceOracle(graph, maxD);
         DistanceOracle oracle = oracleP.getValue0();
         System.out.println("finding reachable hyperedges...");
         Map<Pair<Integer, Integer>, DistanceProfile> reals = 
@@ -51,8 +51,8 @@ public class TopReachableWithTag {
         System.out.println("finding aprroximate distances...");
         StopWatch watch = new StopWatch();
         watch.start();
-        Map<Pair<Integer, Integer>, DistanceProfile> approx = Helper.populateDistanceProfiles(graph, oracle, reals.keySet());
-        Writer.writeStats(reals.size(), oracle.getNumLandmarks(), oracleP.getValue2(), watch.getElapsedTime(), oracle.getOracleSize());
+        Map<Pair<Integer, Integer>, DistanceProfile> approx = Helper.populateDistanceProfiles(graph.getVertexMap(), oracle, reals.keySet());
+        Writer.writeStats(reals.size(), oracle.getNumLandmarks(), oracleP.getValue1(), watch.getElapsedTime(), oracle.getOracleSize());
         Writer.writeResults(reals, approx, "reachWTag" + Settings.seed);
     }
     

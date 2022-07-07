@@ -27,10 +27,9 @@ public class CompareWithBaseline {
     /**
      * 
      * @param graph hypergraph
-     * @return distance oracles created using 3 different strategies, the connected
-     * components of the hypergraph, and the creation times
+     * @return distance oracles created using 3 different strategies and the creation times
      */
-    public static Triplet<DistanceOracle[], ConnectedComponents, Long[]> compareCreationTimes(HyperGraph graph) 
+    public static Pair<DistanceOracle[], Long[]> compareCreationTimes(HyperGraph graph) 
             throws FileNotFoundException {
         
         double[] importance;
@@ -62,7 +61,7 @@ public class CompareWithBaseline {
         System.out.println("Baseline 2 created.");
         watch.start();
         DistanceOracle oracle3 = new DistanceOracle();
-        ConnectedComponents CCS = oracle3.populateOracles(
+        oracle3.populateOracles(
                 graph, Settings.landmarkSelection, 
                 Settings.landmarkAssignment, maxD, 
                 Settings.numLandmarks, Settings.lb, 
@@ -70,7 +69,7 @@ public class CompareWithBaseline {
         creationTimes[2] = watch.getElapsedTime();
         oracles[2] = oracle3;
         System.out.println("Baseline 3 created.");
-        return new Triplet<>(oracles, CCS, creationTimes);
+        return new Pair<>(oracles, creationTimes);
     }
     
     /**
@@ -93,15 +92,15 @@ public class CompareWithBaseline {
         Map<Pair<Integer, Integer>, DistanceProfile> approxDist;
         StopWatch watch = new StopWatch();
         watch.start();
-        approxDist = Helper.populateDistanceProfiles(graph, oracles[0], realDistances.keySet());
+        approxDist = Helper.populateDistanceProfiles(graph.getVertexMap(), oracles[0], realDistances.keySet());
         times[0] = watch.getElapsedTime();
         Writer.writeResults(realDistances, approxDist, "bas1_sample" + id);
         watch.start();
-        approxDist = Helper.populateDistanceProfiles(graph, oracles[1], realDistances.keySet());
+        approxDist = Helper.populateDistanceProfiles(graph.getVertexMap(), oracles[1], realDistances.keySet());
         times[1] = watch.getElapsedTime();
         Writer.writeResults(realDistances, approxDist, "bas2_sample" + id);
         watch.start();
-        approxDist = Helper.populateDistanceProfiles(graph, oracles[2], realDistances.keySet());
+        approxDist = Helper.populateDistanceProfiles(graph.getVertexMap(), oracles[2], realDistances.keySet());
         times[2] = watch.getElapsedTime();
         Writer.writeResults(realDistances, approxDist, "meth_sample" + id);
         return times;
@@ -115,7 +114,7 @@ public class CompareWithBaseline {
         int maxD = Math.min(graph.getDimension(), Settings.maxS);
         System.out.println("Graph loaded.");
         // creation times
-        Triplet<DistanceOracle[], ConnectedComponents, Long[]> oracles = compareCreationTimes(graph);
+        Pair<DistanceOracle[], Long[]> oracles = compareCreationTimes(graph);
         System.out.println("oracles created.");
         // store landmarks
         String[] ids = new String[]{"bas1", "bas2", "meth"};
@@ -126,7 +125,7 @@ public class CompareWithBaseline {
         for (int i = 0; i < 5; i++) {
             System.out.println("Test " + i);
             // sample some hyperedges
-            Set<Pair<Integer, Integer>> sample = oracles.getValue1().samplePairs(graph, Settings.numQueries, i, "edge");
+            Set<Pair<Integer, Integer>> sample = oracles.getValue0()[2].samplePairs(graph.getVertexMap(), Settings.numQueries, i, "edge");
             // find real distances
             Map<Pair<Integer, Integer>, DistanceProfile> realDistances = graph.computeRealEdgeDistanceProfilesAmong(sample, maxD);
             // query time and approximations
@@ -134,7 +133,7 @@ public class CompareWithBaseline {
             for (int j = 0; j < 3; j++) {
                 DistanceOracle oracle = oracles.getValue0()[j];
                 Writer.writeStats(realDistances.size(), oracle.getNumLandmarks(), 
-                        oracles.getValue2()[j], queryTimes[j], oracle.getOracleSize());
+                        oracles.getValue1()[j], queryTimes[j], oracle.getOracleSize());
             }
         }
     }

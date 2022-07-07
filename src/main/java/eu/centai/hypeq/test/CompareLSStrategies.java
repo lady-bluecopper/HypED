@@ -1,6 +1,5 @@
 package eu.centai.hypeq.test;
 
-import eu.centai.hyped.cc.ConnectedComponents;
 import eu.centai.hypeq.oracle.structures.DistanceOracle;
 import eu.centai.hypeq.oracle.structures.DistanceProfile;
 import eu.centai.hypeq.structures.HyperGraph;
@@ -41,7 +40,7 @@ public class CompareLSStrategies {
             watch.start();
             // create oracle
             DistanceOracle oracle = new DistanceOracle();
-            ConnectedComponents CCS = oracle.populateOracles(
+            oracle.populateOracles(
                     graph, Settings.landmarkSelection,
                     Settings.landmarkAssignment, Settings.maxS,
                     Settings.numLandmarks, Settings.lb, 
@@ -51,13 +50,13 @@ public class CompareLSStrategies {
             // sample some hyperedges
             for (int i = 0; i < 5; i++) {
                 System.out.println("Test " + i);
-                Set<Pair<Integer, Integer>> sample = CCS.samplePairs(graph, Settings.numQueries, i, "edge");
+                Set<Pair<Integer, Integer>> sample = oracle.samplePairs(graph.getVertexMap(), Settings.numQueries, i, "edge");
                 // find real distances
                 Map<Pair<Integer, Integer>, DistanceProfile> realDistances = graph.computeRealEdgeDistanceProfilesAmong(sample, Settings.maxS);
                 // query time and approximations
                 watch.start();
                 Settings.kind = "edge";
-                Map<Pair<Integer, Integer>, DistanceProfile> approxDist = Helper.populateDistanceProfiles(graph, oracle, realDistances.keySet());
+                Map<Pair<Integer, Integer>, DistanceProfile> approxDist = Helper.populateDistanceProfiles(graph.getVertexMap(), oracle, realDistances.keySet());
                 Writer.writeStats(realDistances.size(), oracle.getNumLandmarks(), creationTime, watch.getElapsedTime(), oracle.getOracleSize());
                 Writer.writeResults(realDistances, approxDist, "sample" + i);
             }

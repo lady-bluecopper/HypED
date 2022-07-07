@@ -9,6 +9,7 @@ public class Settings {
     public static String dataFolder = "";
     public static String outputFolder = "";
     public static String dataFile = "";
+    public static String queryFile = null;
     // parameter used to determine the desired oracle size: numLandmarks * |E|
     public static int numLandmarks = 30;
     // (random, degree, farthest, bestcover, between)

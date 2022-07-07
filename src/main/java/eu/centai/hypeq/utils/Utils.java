@@ -2,12 +2,19 @@ package eu.centai.hypeq.utils;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Random;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import org.apache.commons.math3.util.CombinatoricsUtils;
+import org.javatuples.Pair;
 
 /**
  *
@@ -352,6 +359,124 @@ public class Utils {
             return (data[data.length / 2] + data[data.length / 2 - 1]) / 2;
         }
         return data[(int) Math.ceil(data.length / 2)];
+    }
+    
+    /**
+     * @param candidates ids of candidates
+     * @param sampleSize number of pairs to sample
+     * @param rnd for reproducibility
+     * @return a sample of pairs of candidates
+     */
+    public static Set<Pair<Integer, Integer>> samplePairs(List<Integer> candidates, 
+            int sampleSize, 
+            Random rnd) {
+        // each triplet: ids of the items selected and size of the cc
+        Set<Pair<Integer, Integer>> sample = Sets.newHashSet();
+        // create pairs using candidate items
+        List<Integer> items = selectItems(sampleSize, candidates, rnd);
+        for (int i = 0; i < items.size() - 1; i += 2) {
+            sample.add(new Pair<>(items.get(i), items.get(i + 1)));
+        }
+        if (items.size() % 2 != 0) {
+            sample.add(new Pair<>(items.get(0), items.get(items.size() - 1)));
+        }
+        return sample;
+    }
+    
+    /**
+     * Method used to sample random elements from a list of candidates.
+     *
+     * @param numItems number of elements to select
+     * @param candidates ids of candidate elements
+     * @param rnd for reproducibility
+     * @return elements selected from candidates
+     */
+    private static List<Integer> selectItems(int numItems, 
+            List<Integer> candidates, 
+            Random rnd) {
+        // if candidates does not include at least 2 hyperedges
+        // return empty
+        if (candidates.size() < 2 || numItems == 0) {
+            return Lists.newArrayList();
+        }
+        if (candidates.size() == numItems) {
+            return Lists.newArrayList(candidates);
+        }
+        // initialize structures
+        Set<Integer> items = Sets.newHashSet();
+        while (items.size() < numItems) {
+            items.add(candidates.get(rnd.nextInt(candidates.size())));
+        }
+        return Lists.newArrayList(items);
+    }
+    
+    /**
+     * Tries to add *budget* pairs of elements to the sample.
+     * Some pairs may already been present in the sample, due to previous
+     * iterations.
+     * 
+     * @param lists list of lists (e.g., list of s-connected components)
+     * @param sample pairs sampled in previous iterations
+     * @param budget number of pairs to sample
+     * @param rnd random object
+     */
+    public static void sampleInLists(
+            List<List<Integer>> lists, 
+            Set<Pair<Integer, Integer>> sample,
+            int budget, 
+            Random rnd) {
+        
+        List<Integer> selectable = IntStream.range(0, lists.size())
+                .filter(i -> lists.get(i).size() > 2)
+                .boxed()
+                .collect(Collectors.toList());
+        
+        BigInteger numCandPairs = BigInteger.ZERO;
+        BigInteger one = BigInteger.ONE;
+        BigInteger two = one.add(one);
+        BigInteger B = BigInteger.valueOf(budget - sample.size());
+        for (int i : selectable) {
+            BigInteger size = BigInteger.valueOf(lists.get(i).size());
+            if (size.compareTo(BigInteger.ZERO) > 0) {
+                // handle int overflow
+                if (size.compareTo(B) > 0) {
+                    numCandPairs = size;
+                    break;
+                }
+                BigInteger prod = size.multiply(size.subtract(one));
+                numCandPairs = numCandPairs.add(prod.divide(two));
+                if (numCandPairs.compareTo(B) > 0) {
+                    break;
+                }
+            }
+        }
+        // if we do not have enough pairs, add all of them
+        if (numCandPairs.compareTo(B) <= 0) {
+            selectable.stream().forEach(i -> {
+                Iterator<int[]> it = CombinatoricsUtils.combinationsIterator(lists.get(i).size(), 2);
+                while (it.hasNext()) {
+                    int[] comb = it.next();
+                    int fst = lists.get(i).get(comb[0]);
+                    int sec = lists.get(i).get(comb[1]);
+                    sample.add(fst < sec
+                            ? new Pair<>(fst, sec) 
+                            : new Pair<>(sec, fst));
+                }
+            });
+            return;
+        }
+        // otherwise we select them at random
+        while (sample.size() < budget) {
+            List<Integer> selectedCC = lists.get(selectable.get(rnd.nextInt(selectable.size())));
+            int first = selectedCC.get(rnd.nextInt(selectedCC.size()));
+            int second;
+            do {
+                second = selectedCC.get(rnd.nextInt(selectedCC.size()));
+            } while (first==second);
+            sample.add(first < second 
+                            ? new Pair<>(first, second) 
+                            : new Pair<>(second, first));
+        }
     }
     
 }

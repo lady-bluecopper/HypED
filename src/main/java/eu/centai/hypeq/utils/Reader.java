@@ -60,6 +60,31 @@ public class Reader {
     }
     
     /**
+     * @param fileName path of input file
+     * @return for each vertex, set of hypeedges including that vertex
+     * @throws IOException 
+     */
+    public static Map<Integer, Set<Integer>> loadVMap(String fileName) throws IOException {
+        final BufferedReader rows = new BufferedReader(new FileReader(fileName));
+        Map<Integer, Set<Integer>> vMap = Maps.newHashMap();
+        String line;
+        int counter = 0;
+
+        while ((line = rows.readLine()) != null) {
+            String[] parts = line.split(" ");
+            for (String p : parts) {
+                int v = Integer.parseInt(p);
+                Set<Integer> memb = vMap.getOrDefault(v, Sets.newHashSet());
+                memb.add(counter);
+                vMap.put(v, memb);
+            }
+            counter++;
+        }
+        rows.close();
+        return vMap;
+    }
+    
+    /**
      * 
      * @param fileName path to input file
      * @return list of hyperedges of the hypergraph in the input file
@@ -250,27 +275,14 @@ public class Reader {
     }
     
     /**
-     * Reads pairs of hyperedges from an output file.
+     * Reads pairs of elements from a file.
      * 
-     * @return a set of pairs of hyperedges
+     * @return a set of pairs of elements
      * @throws IOException 
      */
-    public static Set<Pair<Integer, Integer>> readHyperEdgeSample() throws IOException {
+    public static Set<Pair<Integer, Integer>> readSample(String fileName) throws IOException {
         
-        String method = Settings.landmarkSelection;
-        if (method.equalsIgnoreCase("bestcover") || method.equalsIgnoreCase("between")) {
-            method += ("_" + Settings.samplePerc);
-        }
-        String outputFile = Settings.dataFile + "_S" + Settings.maxS
-                        + "_L10_LB4"
-                        + "_Q" + Settings.numQueries
-                        + "_M" + method
-                        + "_LA" + Settings.landmarkAssignment
-                        + "_A" + Settings.alpha
-                        + "_B" + Settings.beta
-                        + "_IDedge" + Settings.seed + ".txt";
-        
-        final BufferedReader rows = new BufferedReader(new FileReader(Settings.outputFolder + outputFile));
+        final BufferedReader rows = new BufferedReader(new FileReader(fileName));
         Set<Pair<Integer, Integer>> pairs = Sets.newHashSet();
         String line;
 

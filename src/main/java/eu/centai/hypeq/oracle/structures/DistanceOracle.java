@@ -8,11 +8,14 @@ import eu.centai.hyped.cc.ConnectedComponents;
 import eu.centai.hypeq.structures.HyperGraph;
 import eu.centai.hypeq.utils.Settings;
 import eu.centai.hypeq.utils.StopWatch;
+import eu.centai.hypeq.utils.Utils;
 import eu.centai.hypeq.utils.Writer;
 import java.io.FileNotFoundException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Random;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -99,6 +102,19 @@ public class DistanceOracle {
     }
     
     /**
+     * 
+     * @param e hyperedge
+     * @return the max s for which e belongs to some s-connected component; 1 otherwise
+     */
+    public int getMaxHEsMembership(int e) {
+        return ccPerHyperedge.keySet()
+                .stream()
+                .filter(k -> ccPerHyperedge.get(k).containsKey(e))
+                .mapToInt(x -> x)
+                .max().orElse(1);
+    }
+    
+    /**
      * Populate oracles simultaneously.
      * 
      * @param graph hypergraph for which the oracle is created
@@ -113,11 +129,10 @@ public class DistanceOracle {
      * In the latter case, alpha + beta <= 1.
      * @param isPrecomputed whether the hyperedge overlaps have been computed at creation time
      * @param seed seed for reproducibility
-     * @return connected components found during the creation of the oracle
      * @throws java.io.FileNotFoundException
      * 
      */
-    public ConnectedComponents populateOracles(
+    public void populateOracles(
             HyperGraph graph,
             String selMethod, 
             String assMethod,
@@ -176,7 +191,6 @@ public class DistanceOracle {
                 .parallel()
                 .forEach(s -> oracles[s].populateOracle(graph, landsForAllS.getOrDefault(s+1, Sets.newHashSet()), s+1));
         System.out.println("oracle populated in (s) " + watch.getElapsedTimeInSec());
-        return CCS;
     }
     
     /**
@@ -289,6 +303,20 @@ public class DistanceOracle {
     }
     
     /**
+     * 
+     * @param vMap for each vertex, the set of hyperedges including that vertex
+     * @param v vertex id
+     * @param s min overlap size
+     * @return list of hyperedges of size not lower than s and including v
+     */
+    public List<Integer> getSHyperEdgesOf(Map<Integer, Set<Integer>> vMap, int v, int s) {
+        return vMap.getOrDefault(v, Sets.newHashSet())
+                .stream()
+                .filter(e -> ccPerHyperedge.getOrDefault(s, Maps.newHashMap()).containsKey(e))
+                .collect(Collectors.toList());
+    }
+    
+    /**
      * If the s-cc including e1 and e2 has size not greater than lb, the distance
      * between e1 and e2 is approximated according to the topology of the s-cc.
      * 
@@ -339,17 +367,22 @@ public class DistanceOracle {
     
     /**
      * 
-     * @param graph hypergraph
+     * @param vMap for each vertex, the set of hyperedges including that vertex
      * @param v1 vertex id
      * @param v2 vertex id
      * @param s min overlap size
      * @param lb lower-bound to component size
      * @return lower-bound, upper-bound, and approximate s-distance between v1 and v2
      */
-    public Triplet<Double, Double, Double> getApproxSDistanceBetweenVertices(HyperGraph graph, int v1, int v2, int s, int lb) {
+    public Triplet<Double, Double, Double> getApproxSDistanceBetweenVertices(
+            Map<Integer, Set<Integer>> vMap, 
+            int v1, 
+            int v2, 
+            int s, 
+            int lb) {
         Triplet<Double, Double, Double> approxVDist = new Triplet<>(Double.MAX_VALUE, Double.MAX_VALUE, Double.MAX_VALUE);
-        for (int e1 : graph.getSHyperEdgesOf(v1, s)) {
-            for (int e2 : graph.getSHyperEdgesOf(v2, s)) {
+        for (int e1 : getSHyperEdgesOf(vMap, v1, s)) {
+            for (int e2 : getSHyperEdgesOf(vMap, v2, s)) {
                 Triplet<Double, Double, Double> approxDist = getApproxSDistanceBetween(e1, e2, s, lb);
                 if (approxDist.getValue0() != -1 && approxDist.getValue2() < approxVDist.getValue2()) {
                     approxVDist = approxDist;
@@ -364,16 +397,21 @@ public class DistanceOracle {
     
     /**
      * 
-     * @param graph hypergraph
+     * @param vMap for each vertex, the set of hyperedges including that vertex
      * @param v vertex id
      * @param e hyperedge id
      * @param s min overlap size
      * @param lb min component size
      * @return lower-bound, upper-bound, and approximate s-distance between v and e
      */
-    public Triplet<Double, Double, Double> getApproxSDistanceBetweenVE(HyperGraph graph, int v, int e, int s, int lb) {
+    public Triplet<Double, Double, Double> getApproxSDistanceBetweenVE(
+            Map<Integer, Set<Integer>> vMap, 
+            int v, 
+            int e, 
+            int s, 
+            int lb) {
         Triplet<Double, Double, Double> approxVDist = new Triplet<>(Double.MAX_VALUE, Double.MAX_VALUE, Double.MAX_VALUE);
-        for (int e1 : graph.getSHyperEdgesOf(v, s)) {
+        for (int e1 : getSHyperEdgesOf(vMap, v, s)) {
             Triplet<Double, Double, Double> approxDist = getApproxSDistanceBetween(e1, e, s, lb);
             if (approxDist.getValue0() != -1 && approxDist.getValue2() < approxVDist.getValue2()) {
                 approxVDist = approxDist;
@@ -502,6 +540,92 @@ public class DistanceOracle {
             return 0;
         }
         return tmp[cc_id];
+    }
+    
+    /**
+     * Sample pairs of hyperedges/vertex-hyperedge ensuring that they belong to 
+     * the same s-connected component for some s.
+     * 
+     * @param vMap for each vertex, the hyperedges to which it belongs
+     * @param sampleSize number of pairs of hyperedges to sample
+     * @param seed seed for reproducibility
+     * @param kind if "edge" find edge pairs; if "both" find vertex-edge pairs
+     * @return a sample of pairs 
+     */
+    public Set<Pair<Integer, Integer>> samplePairs(
+            Map<Integer, Set<Integer>> vMap,
+            int sampleSize, 
+            int seed, 
+            String kind) {
+        Set<Pair<Integer, Integer>> hyperedgeSample = sampleHyperEdges(sampleSize, seed);
+        if (kind.equalsIgnoreCase("edge")) {
+            return hyperedgeSample;
+        } else if (kind.equalsIgnoreCase("both")) {
+            Random rand = new Random(Settings.seed);
+            Set<Pair<Integer, Integer>> sample = Sets.newHashSet();
+            Set<Integer> verticesAdded = Sets.newHashSet();
+            // initialize inverse map hyperedge -> vertices contained
+            Map<Integer, Set<Integer>> invMap = Maps.newHashMap();
+            for (int v : vMap.keySet()) {
+                for (int e : vMap.get(v)) {
+                    Set<Integer> tmp = invMap.getOrDefault(e, Sets.newHashSet());
+                    tmp.add(v);
+                    invMap.put(e, tmp);
+                }
+            }
+            for (Pair<Integer, Integer> p : hyperedgeSample) {
+                Pair<Integer, Integer> pair;
+                List<Integer> cands = Lists.newArrayList(invMap.getOrDefault(p.getValue0(), Sets.newHashSet()));
+                if (verticesAdded.containsAll(cands)) {
+                    continue;
+                }
+                do {
+                    pair = new Pair<>(cands.get(rand.nextInt(cands.size())), p.getValue1());
+                } while (!sample.add(pair));
+                verticesAdded.add(pair.getValue0());
+            }
+            return sample;
+        } else {
+            throw new IllegalArgumentException("Kind " + kind + " not supported.");
+        }
+    }
+    
+    /**
+     * Sample pairs of hyperedges ensuring that they belong to the same 
+     * s-connected component for some s.
+     * 
+     * @param sampleSize number of pairs of hyperedges to sample
+     * @param seed seed for reproducibility
+     * @return a sample of pairs of hyperedges 
+     */
+    public Set<Pair<Integer, Integer>> sampleHyperEdges(int sampleSize, int seed) {
+        Set<Pair<Integer, Integer>> sample = Sets.newHashSet();
+        Random rnd = new Random(seed);
+        int sumS = ccPerHyperedge.keySet().stream().mapToInt(i -> i).sum();
+        int maxS = ccPerHyperedge.keySet().stream().mapToInt(i -> i).max().orElse(0);
+        // temporary map
+        Map<Integer, List<Integer>> invMap;
+        for (int s = maxS; s > 1; s--) {
+            // create temporary inverse map
+            invMap = Maps.newHashMap();
+            for (Entry<Integer, Integer> en : ccPerHyperedge.get(s).entrySet()) {
+                List<Integer> lst = invMap.getOrDefault(en.getValue(), Lists.newArrayList());
+                lst.add(en.getKey());
+                invMap.put(en.getValue(), lst);
+            }
+            // try to add b pairs to the sample
+            int b = s * (sampleSize - sample.size()) / sumS;
+            Utils.sampleInLists(Lists.newArrayList(invMap.values()), sample, sample.size() + b, rnd);
+            sumS -= s;
+        }
+        invMap = Maps.newHashMap();
+        for (Entry<Integer, Integer> en : ccPerHyperedge.get(1).entrySet()) {
+            List<Integer> lst = invMap.getOrDefault(en.getValue(), Lists.newArrayList());
+            lst.add(en.getKey());
+            invMap.put(en.getValue(), lst);
+        }
+        Utils.sampleInLists(Lists.newArrayList(invMap.values()), sample, sampleSize, rnd);
+        return sample;
     }
     
 }

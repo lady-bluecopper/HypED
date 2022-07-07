@@ -906,7 +906,7 @@ public class LandMarkSelector {
         }
         List<Integer> candList = Lists.newArrayList(candidates);
         // sample pairs of hyperedges at random
-        Set<Pair<Integer, Integer>> sample = graph.samplePairs(candList, sampleSize, rand);
+        Set<Pair<Integer, Integer>> sample = Utils.samplePairs(candList, sampleSize, rand);
         if (allPaths) {
             return sample.parallelStream()
                     .flatMap(p -> graph.findAllPathsBetween(p.getValue0(), 

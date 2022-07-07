@@ -183,7 +183,47 @@ do
 		done
 	fi
 
-        if [[ ${experiments[5]} -eq "1" ]]; then
+	if [[ ${experiments[5]} -eq "1" ]]; then
+		echo '---------------------------------------'
+		echo '      Distances Varying Landmarks      '
+		echo '---------------------------------------'
+
+		OUTPUT="$output_data/queries"
+		mkdir -p $OUTPUT
+		if [[ $isApproximate == "true" ]]; then
+			OUTPUT2="$OUTPUT/approx/"
+		else
+			OUTPUT2="$OUTPUT/real/"
+		fi
+		mkdir -p $OUTPUT2
+
+		lands=(`echo ${test_lands[${dataset}]}|tr "," "\n"`)
+
+		for strategy in ${landmarkSelection[*]}
+		do
+			for l in ${lands[*]}
+			do
+				if [[ $landmarkAssignment == "ranking" ]]; then
+					echo "Running command ..."
+					echo "$JVM $HYPERQ_jar dataFolder=${input_data} outputFolder=$OUTPUT2 dataFile=${dataset}.hg queryFile=${queryFile} numLandmarks=$l samplePerc=${defaults[1]} landmarkSelection=$strategy numQueries=${defaults[2]} store=${defaults[5]} landmarkAssignment=$landmarkAssignment lb=${defaults[3]} maxS=${defaults[4]} alpha=$alpha beta=$beta seed=$seed isApproximate=$isApproximate kind=$kind"
+					echo "---- `date`"
+					$JVM $HYPERQ_jar dataFolder=${input_data} outputFolder=$OUTPUT2 dataFile=${dataset}.hg queryFile=${queryFile} numLandmarks=$l samplePerc=${defaults[1]} landmarkSelection=$strategy numQueries=${defaults[2]} store=${defaults[5]} landmarkAssignment=$landmarkAssignment lb=${defaults[3]} maxS=${defaults[4]} alpha=$alpha beta=$beta seed=$seed isApproximate=$isApproximate kind=$kind
+				else
+                                        for run in {1..5}
+                                        do
+                                                OUT2="$OUTPUT2$run/"
+						mkdir -p $OUT2
+                                                echo "Running command ..."
+                                                echo "$JVM $HYPERQ_jar dataFolder=${input_data} outputFolder=$OUT2 dataFile=${dataset}.hg queryFile=${queryFile} numLandmarks=$l samplePerc=${defaults[1]} landmarkSelection=$strategy numQueries=${defaults[2]} store=${defaults[5]} landmarkAssignment=$landmarkAssignment lb=${defaults[3]} maxS=${defaults[4]} alpha=$alpha beta=$beta seed=$run isApproximate=$isApproximate kind=$kind"
+                                                echo "---- `date`"
+                                               $JVM $HYPERQ_jar dataFolder=${input_data} outputFolder=$OUT2 dataFile=${dataset}.hg queryFile=${queryFile} numLandmarks=$l samplePerc=${defaults[1]} landmarkSelection=$strategy numQueries=${defaults[2]} store=${defaults[5]} landmarkAssignment=$landmarkAssignment lb=${defaults[3]} maxS=${defaults[4]} alpha=$alpha beta=$beta seed=$run isApproximate=$isApproximate kind=$kind
+                                        done
+                                fi
+			done
+		done
+	fi
+
+        if [[ ${experiments[6]} -eq "1" ]]; then
                 echo '-----------------------------'
                 echo '      Search By Tag          '
                 echo '-----------------------------'
@@ -205,7 +245,7 @@ do
                 done
         fi
 
-        if [[ ${experiments[6]} -eq "1" ]]; then
+        if [[ ${experiments[7]} -eq "1" ]]; then
                 echo '---------------------------'
                 echo '       Line Graph          '
                 echo '---------------------------'

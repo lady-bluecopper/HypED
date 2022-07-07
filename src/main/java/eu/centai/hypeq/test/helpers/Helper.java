@@ -34,14 +34,14 @@ public class Helper {
      * Populates the approximate distance profiles for the pairs of elements in 
      * realDist, using a distance oracle.
      * 
-     * @param graph hypergraph
+     * @param vMap for each vertex, the set of hyperedges including that vertex
      * @param oracle distance oracle
      * @param sample sample
      * @return approximate distance profiles computing using the distance oracle
      * @throws IOException 
      */
     public static Map<Pair<Integer, Integer>, DistanceProfile> populateDistanceProfiles(
-            HyperGraph graph,
+            Map<Integer, Set<Integer>> vMap,
             DistanceOracle oracle,
             Collection<Pair<Integer, Integer>> sample) throws IOException {
         
@@ -51,18 +51,24 @@ public class Helper {
                     int v = entry.getValue1();
                     int maxS = Settings.maxS;
                     if (Settings.kind.equalsIgnoreCase("edge")) {
-                        maxS = Math.min(Math.min(graph.getNumVerticesOf(u), graph.getNumVerticesOf(v)), Settings.maxS);
+                        maxS = Math.min(Math.min(oracle.getMaxHEsMembership(u), oracle.getMaxHEsMembership(v)), Settings.maxS);
                     } else if (Settings.kind.equalsIgnoreCase("vertex")) {
-                        int s1 = graph.getSHyperEdgesOf(u, 1).stream().mapToInt(e -> graph.getEdge(e).getNumVertices()).max().orElse(0);
-                        int s2 = graph.getSHyperEdgesOf(v, 1).stream().mapToInt(e -> graph.getEdge(e).getNumVertices()).max().orElse(0);
+                        int s1 = oracle.getSHyperEdgesOf(vMap, u, 1)
+                                .stream()
+                                .mapToInt(e -> oracle.getMaxHEsMembership(e)).max().orElse(0);
+                        int s2 = oracle.getSHyperEdgesOf(vMap, v, 1)
+                                .stream()
+                                .mapToInt(e -> oracle.getMaxHEsMembership(e)).max().orElse(0);
                         maxS = Math.min(s1, s2);
                     } else if (Settings.kind.equalsIgnoreCase("both")) {
-                        int s1 = graph.getSHyperEdgesOf(u, 1).stream().mapToInt(e -> graph.getEdge(e).getNumVertices()).max().orElse(0);
-                        int s2 = graph.getNumVerticesOf(v);
+                        int s1 = oracle.getSHyperEdgesOf(vMap, u, 1)
+                                .stream()
+                                .mapToInt(e -> oracle.getMaxHEsMembership(e)).max().orElse(0);
+                        int s2 = oracle.getMaxHEsMembership(v);
                         maxS = Math.min(s1, s2);
                     }
                     DistanceProfile dp = new DistanceProfile(u, v);
-                    dp.createDistanceProfile(graph, oracle, maxS, Settings.lb, Settings.kind);
+                    dp.createDistanceProfile(vMap, oracle, maxS, Settings.lb, Settings.kind);
                     return new Pair<Pair<Integer, Integer>, DistanceProfile>(entry, dp);
                 })
                 .collect(Collectors.toMap(e -> e.getValue0(), e -> e.getValue1()));
@@ -176,7 +182,7 @@ public class Helper {
      * @return distance oracle for the hypergraph
      * @throws FileNotFoundException 
      */
-    public static Triplet<DistanceOracle, ConnectedComponents, Long> getDistanceOracle(HyperGraph graph, int maxD) throws FileNotFoundException {
+    public static Pair<DistanceOracle, Long> getDistanceOracle(HyperGraph graph, int maxD) throws FileNotFoundException, IOException {
         // oracle settings
         double[] importance;
         if (Settings.landmarkAssignment.equals("ranking")) {
@@ -185,7 +191,7 @@ public class Helper {
             importance = new double[]{Settings.alpha, Settings.beta};
         }
         DistanceOracle oracle = new DistanceOracle();
-        ConnectedComponents CCS = null;
+        ConnectedComponents CCS;
         boolean computeFromScratch = !Settings.store;
         if (Settings.store) {
             try {
@@ -208,9 +214,13 @@ public class Helper {
         StopWatch watch = new StopWatch();
         long creationTime = 0L;
         if (computeFromScratch) {
+            if (graph == null) {
+                graph = Reader.loadGraph(Settings.dataFolder + Settings.dataFile, false);
+                System.out.println("graph loaded.");
+            }
             watch.start();
             // create oracle
-            CCS = oracle.populateOracles(
+            oracle.populateOracles(
                     graph, Settings.landmarkSelection, 
                     Settings.landmarkAssignment, maxD, 
                     Settings.numLandmarks, Settings.lb, importance, 
@@ -222,7 +232,7 @@ public class Helper {
                 System.out.println("oracle written on disk.");
             }
         }
-        return new Triplet<>(oracle, CCS, creationTime);
+        return new Pair<>(oracle, creationTime);
     }
     
 }
