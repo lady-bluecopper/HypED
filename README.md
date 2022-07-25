@@ -10,7 +10,8 @@ The package includes a Jupyter Notebook (*Results.ipynb*) with the results of th
 
 ## Content
 
-	scripts/ ......
+	datasets/ .....
+    scripts/ ......
 	src/ ..........
     Results.ipynb..
 	LICENSE .......
@@ -24,6 +25,7 @@ The package includes a Jupyter Notebook (*Results.ipynb*) with the results of th
 The input file must be a space separated list of integers, where each integer represents a vertex and each line represents a hyperedge in the hypergraph.
 The algorithm assumes that the file does not contain duplicate hyperedges.
 The script *run.sh* assumes that the file extension is *.hg*.
+The folder *datasets* includes all the datasets used in our experimental evaluation.
 
 ## Usage
 
