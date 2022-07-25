@@ -65,3 +65,8 @@ The algorithm produces two output files: one contains the approximate distances,
 
 1. Output File: comma-separated list including src_id, dst_id, s, real s-distance (only if isApproximate was set to *False*), lower-bound to the s-distance, upper-bound to the s-distance, and approximate s-distance (computed as the median between lower and upper bound).
 2. Statistics File: tab-separated list including dataset name, timestamp, oracle creation time, query time, max min overlap s, lower bound lb, number of landmarks L, actual number of landmarks, number of distance pairs stored in the oracle, number of queries answered, landmark selection strategy, landmark assignment strategy, alpha, and beta.     
+
+## License
+
+This package is free for use (GNU General Public License). 
+If you use part of this code in your projects, please cite the following work:
