@@ -6,10 +6,13 @@ The algorithm can answer three types of queries: vertex-to-hyperedge, vertex-to-
 This is achieved by constructing a distance oracle, which can be stored on disk for future usages. The distance oracle stores distances from landmark hyperedges to reachable hyperedges, so that the distance between two hyperedges can be approximated via triangle inequalities.
 The algorithm requires in input a number of landmark *L* used to compute the desired oracle size *O = L x |E|*, where *|E|* is the number of hyperedges in the hypergraph. Please note that *L* is not the actual number of landmarks used by the distance oracle.
 
+The package includes a Jupyter Notebook (*Results.ipynb*) with the results of the experimental evaluation of HypED.
+
 ## Content
 
 	scripts/ ......
 	src/ ..........
+    Results.ipynb..
 	LICENSE .......
 
 ## Requirements
