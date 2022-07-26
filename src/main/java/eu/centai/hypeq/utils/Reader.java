@@ -19,10 +19,12 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.javatuples.Pair;
+import org.javatuples.Triplet;
 
 /**
  * Class with methods to read objects from disk.
@@ -277,6 +279,7 @@ public class Reader {
     /**
      * Reads pairs of elements from a file.
      * 
+     * @param fileName path to the query file
      * @return a set of pairs of elements
      * @throws IOException 
      */
@@ -293,6 +296,32 @@ public class Reader {
         }
         rows.close();
         return pairs;
+    }
+    
+    /**
+     * Reads pairs of elements from a file.
+     * 
+     * @param fileName path to the query file
+     * @return a set of pairs of elements
+     * @throws IOException 
+     */
+    public static Collection<Triplet<Integer, Integer, Integer>> readSQueries(String fileName) throws IOException {
+        
+        final BufferedReader rows = new BufferedReader(new FileReader(fileName));
+        List<Triplet<Integer, Integer, Integer>> queries = Lists.newArrayList();
+        String line;
+
+        while ((line = rows.readLine()) != null) {
+            String[] parts = line.split(" ");
+            // source, destination, s
+            Triplet<Integer, Integer, Integer> t = new Triplet<>(
+                    Integer.parseInt(parts[0]), 
+                    Integer.parseInt(parts[1]),
+                    Integer.parseInt(parts[2]));
+            queries.add(t);
+        }
+        rows.close();
+        return queries;
     }
     
 }

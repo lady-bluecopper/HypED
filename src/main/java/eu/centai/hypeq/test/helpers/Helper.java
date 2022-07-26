@@ -25,7 +25,8 @@ import org.javatuples.Pair;
 import org.javatuples.Triplet;
 
 /**
- *
+ * Helper methods for the various tests.
+ * 
  * @author giulia
  */
 public class Helper {
@@ -68,8 +69,35 @@ public class Helper {
                         maxS = Math.min(s1, s2);
                     }
                     DistanceProfile dp = new DistanceProfile(u, v);
-                    dp.createDistanceProfile(vMap, oracle, maxS, Settings.lb, Settings.kind);
+                    dp.createDistanceProfile(vMap, oracle, maxS, Settings.lb, Settings.kind, false);
                     return new Pair<Pair<Integer, Integer>, DistanceProfile>(entry, dp);
+                })
+                .collect(Collectors.toMap(e -> e.getValue0(), e -> e.getValue1()));
+        return allApproxHDist;
+    }
+    
+    /**
+     * Populates the approximate distance profiles for the pairs of elements in 
+     * realDist, using a distance oracle.
+     * 
+     * @param vMap for each vertex, the set of hyperedges including that vertex
+     * @param oracle distance oracle
+     * @param queries triplets (src,dest,s) of s-distances to estimate
+     * @return approximate distance profiles computing using the distance oracle
+     * @throws IOException 
+     */
+    public static Map<Pair<Integer, Integer>, DistanceProfile> answerSDistanceQueries(
+            Map<Integer, Set<Integer>> vMap,
+            DistanceOracle oracle,
+            Collection<Triplet<Integer, Integer, Integer>> queries) throws IOException {
+        
+        Map<Pair<Integer, Integer>, DistanceProfile> allApproxHDist = queries.parallelStream()
+                .map(entry -> {
+                    int u = entry.getValue0();
+                    int v = entry.getValue1();
+                    DistanceProfile dp = new DistanceProfile(u, v);
+                    dp.createDistanceProfile(vMap, oracle, entry.getValue2(), Settings.lb, Settings.kind, true);
+                    return new Pair<Pair<Integer, Integer>, DistanceProfile>(new Pair<>(u, v), dp);
                 })
                 .collect(Collectors.toMap(e -> e.getValue0(), e -> e.getValue1()));
         return allApproxHDist;

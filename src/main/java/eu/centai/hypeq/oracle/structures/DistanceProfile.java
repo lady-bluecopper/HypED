@@ -52,7 +52,7 @@ public class DistanceProfile {
     }
     
     /**
-     * Populate the distance profile of p and q.Method used when the distance profile regards hyperedges.
+     * Populate the distance profile of p and q.
      * 
      * @param vMap for each vertex, the set of hyperedges including that vertex
      * @param oracle distance oracle
@@ -60,15 +60,21 @@ public class DistanceProfile {
      * @param lb min component size
      * @param kind it indicates if p and q are (i) vertices, (ii) edges, (iii) one 
      * vertex and one edge
+     * @param isSingle whether we want to find only the maxS-distance or all the s-distances up to maxS
      */
     public void createDistanceProfile(
             Map<Integer, Set<Integer>> vMap, 
             DistanceOracle oracle, 
             int maxS, 
             int lb, 
-            String kind) {
+            String kind,
+            boolean isSingle) {
 
-        for (int s = 1; s <= maxS; s++) {
+        int start = 1;
+        if (isSingle) {
+            start = maxS;
+        }
+        for (int s = start; s <= maxS; s++) {
             switch (kind) {
                 case "edge":
                     distances.put(s, oracle.getApproxSDistanceBetween(p, q, s, lb));

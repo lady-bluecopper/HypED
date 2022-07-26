@@ -19,11 +19,11 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.PriorityQueue;
 import java.util.Queue;
-import java.util.Random;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.javatuples.Pair;
+import org.javatuples.Triplet;
 
 /**
  *
@@ -767,6 +767,28 @@ public class HyperGraph {
         }
         throw new IllegalArgumentException("Kind " + kind + " not available.");
     }
+    
+    /**
+     *
+     * @param queries triplets (src,dest,s) of s-distances to estimate
+     * @param kind kind of distance to compute, among "edge" (edge to edge),
+     * "vertex" (vertex to vertex), and "both" (vertex to edge)
+     * @return s-distance profiles for the (src,dest) pairs in queries
+     */
+    public Map<Pair<Integer, Integer>, DistanceProfile> computeRealDistanceProfilesAmong(
+            Collection<Triplet<Integer, Integer, Integer>> queries,
+            String kind) {
+        if (kind.equalsIgnoreCase("edge")) {
+            return computeRealEdgeDistanceProfilesAmong(queries);
+        }
+        if (kind.equalsIgnoreCase("vertex")) {
+            return computeRealVertexDistanceProfilesAmong(queries);
+        }
+        if (kind.equalsIgnoreCase("both")) {
+            return computeRealVEDistanceProfilesAmong(queries);
+        }
+        throw new IllegalArgumentException("Kind " + kind + " not available.");
+    }
 
     /**
      *
@@ -789,6 +811,31 @@ public class HyperGraph {
                         }
                     }
                     return new Pair<Pair<Integer, Integer>, DistanceProfile>(pair, dp);
+                })
+                .collect(Collectors.toMap(k -> k.getValue0(), k -> k.getValue1()));
+    }
+    
+    /**
+     *
+     * @param queries triplets (src,dest,s) of s-distances to estimate
+     * @return s-distance profiles for the pairs of hyperedges in queries
+     */
+    public Map<Pair<Integer, Integer>, DistanceProfile> computeRealEdgeDistanceProfilesAmong(
+            Collection<Triplet<Integer, Integer, Integer>> queries) {
+
+        return queries
+                .parallelStream()
+                .map(tri -> {
+                    DistanceProfile dp = new DistanceProfile(tri.getValue0(), tri.getValue1());
+                    int d = bidirectionalSPSearch(
+                            tri.getValue0(), 
+                            tri.getValue1(), 
+                            tri.getValue2(),
+                            getNumEdges()).size() - 1;
+                    if (d > 0) {
+                        dp.addDistance(tri.getValue2(), d);
+                    }
+                    return new Pair<Pair<Integer, Integer>, DistanceProfile>(new Pair<>(tri.getValue0(), tri.getValue1()), dp);
                 })
                 .collect(Collectors.toMap(k -> k.getValue0(), k -> k.getValue1()));
     }
@@ -828,6 +875,35 @@ public class HyperGraph {
     
     /**
      *
+     * @param queries triplets (src,dest,s) of s-distances to estimate
+     * @return s-distance profiles for the pairs of vertices in queries
+     */
+    public Map<Pair<Integer, Integer>, DistanceProfile> computeRealVertexDistanceProfilesAmong(
+            Collection<Triplet<Integer, Integer, Integer>> queries) {
+
+        return queries
+                .parallelStream()
+                .map(tri -> {
+                    DistanceProfile dp = new DistanceProfile(tri.getValue0(), tri.getValue1());
+                    int d = Integer.MAX_VALUE;
+                    for (int e1 : getSHyperEdgesOf(tri.getValue0(), tri.getValue2())) {
+                        for (int e2 : getSHyperEdgesOf(tri.getValue1(), tri.getValue2())) {
+                            int pathSize = bidirectionalSPSearch(e1, e2, tri.getValue2(), getNumEdges()).size() - 1;
+                            if (pathSize > 0) {
+                                d = Math.min(d, pathSize);
+                            }
+                        }
+                    }
+                    if (d != Integer.MAX_VALUE) {
+                        dp.addDistance(tri.getValue2(), d);
+                    }
+                    return new Pair<Pair<Integer, Integer>, DistanceProfile>(new Pair<>(tri.getValue0(), tri.getValue1()), dp);
+                })
+                .collect(Collectors.toMap(k -> k.getValue0(), k -> k.getValue1()));
+    }
+    
+    /**
+     *
      * @param sample pairs of vertex-hyperedge
      * @param maxS max overlap size
      * @return s-distance profiles from the vertices to the hyperedges in the sample
@@ -853,6 +929,33 @@ public class HyperGraph {
                         }
                     }
                     return new Pair<Pair<Integer, Integer>, DistanceProfile>(pair, dp);
+                })
+                .collect(Collectors.toMap(k -> k.getValue0(), k -> k.getValue1()));
+    }
+    
+    /**
+     *
+     * @param queries triplets (src,dest,s) of s-distances to estimate
+     * @return s-distance profiles from the vertices to the hyperedges in queries
+     */
+    public Map<Pair<Integer, Integer>, DistanceProfile> computeRealVEDistanceProfilesAmong(
+            Collection<Triplet<Integer, Integer, Integer>> queries) {
+
+        return queries
+                .parallelStream()
+                .map(tri -> {
+                    DistanceProfile dp = new DistanceProfile(tri.getValue0(), tri.getValue1());
+                    int d = Integer.MAX_VALUE;
+                    for (int e1 : getSHyperEdgesOf(tri.getValue0(), tri.getValue2())) {
+                        int pathSize = bidirectionalSPSearch(e1, tri.getValue1(), tri.getValue2(), getNumEdges()).size() - 1;
+                        if (pathSize > 0) {
+                            d = Math.min(d, pathSize);
+                        }
+                    }
+                    if (d != Integer.MAX_VALUE) {
+                        dp.addDistance(tri.getValue2(), d);
+                    }
+                    return new Pair<Pair<Integer, Integer>, DistanceProfile>(new Pair<>(tri.getValue0(), tri.getValue1()), dp);
                 })
                 .collect(Collectors.toMap(k -> k.getValue0(), k -> k.getValue1()));
     }
