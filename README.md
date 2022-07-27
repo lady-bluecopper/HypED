@@ -89,10 +89,10 @@ The script includes some comments on its usage.
 
 The meta-structures used by the algorithms can be created using the bash script *preprocessing.sh*. 
 This script includes some variables that must be properly set:
-    1. *file_path*: path to the graph files
-    2. *datasets*: space-separated list of graph names
-    3. *proj*: space separated list of s values, where each value gives the name of the s-line graph
-    4. other parameters: CTL requires a list of tree-witdh values (*tws*), while HL requires a list of numbers of vertices (*lands*)
+1. *file_path*: path to the graph files
+2. *datasets*: space-separated list of graph names
+3. *proj*: space separated list of s values, where each value gives the name of the s-line graph
+4. other parameters: CTL requires a list of tree-witdh values (*tws*), while HL requires a list of numbers of vertices (*lands*)
 
 The queries can be answered using the bash script *query.sh*.
 This script includes some comments on its usage.
