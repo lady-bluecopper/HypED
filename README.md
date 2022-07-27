@@ -106,6 +106,9 @@ This package is free for use (GNU General Public License).
 ## References
 
 [1] Wentao Li, Miao Qiao, Lu Qin, Ying Zhang, Lijun Chang, and Xuemin Lin. 2020. Scaling up distance labeling on graphs with core-periphery properties. In SIGMOD. 1367–1381.
+
 [2] Muhammad Farhan, Qing Wang, Yu Lin, and Brendan Mckay. 2019. A highly scalable labelling approach for exact distance queries in complex networks. In EDBT.
+
 [3] [Core-Tree Labelling Code](https://wentaoli-92.github.io/file/CTL_CODE_2020.zip)
+
 [4] [Highway Labelling Repository](https://github.com/mufarhan/highway_labelling)
