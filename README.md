@@ -6,14 +6,15 @@ The algorithm can answer three types of queries: vertex-to-hyperedge, vertex-to-
 This is achieved by constructing a distance oracle, which can be stored on disk for future usages. The distance oracle stores distances from landmark hyperedges to reachable hyperedges, so that the distance between two hyperedges can be approximated via triangle inequalities.
 The algorithm requires in input a number of landmark *L* used to compute the desired oracle size *O = L x |E|*, where *|E|* is the number of hyperedges in the hypergraph. Please note that *L* is not the actual number of landmarks used by the distance oracle.
 
-The package includes a Jupyter Notebook (*Results.ipynb*) with the results of the experimental evaluation of HypED.
+The package includes a Jupyter Notebook (*Results.ipynb*) with the results of the experimental evaluation of HypED, and the source code (*related*) of the two competitors considered in the evaluation.
 
 ## Content
 
 	datasets/ .....
-    scripts/ ......
+	related/.......
+	scripts/ ......
 	src/ ..........
-    Results.ipynb..
+	Results.ipynb..
 	LICENSE .......
 
 ## Requirements
@@ -66,7 +67,45 @@ The algorithm produces two output files: one contains the approximate distances,
 1. Output File: comma-separated list including src_id, dst_id, s, real s-distance (only if isApproximate was set to *False*), lower-bound to the s-distance, upper-bound to the s-distance, and approximate s-distance (computed as the median between lower and upper bound).
 2. Statistics File: tab-separated list including dataset name, timestamp, oracle creation time, query time, max min overlap s, lower bound lb, number of landmarks L, actual number of landmarks, number of distance pairs stored in the oracle, number of queries answered, landmark selection strategy, landmark assignment strategy, alpha, and beta.     
 
+## Related Code
+
+The folder *related* includes the source code of the two competitor algorithms considered in our experimental evaluation.
+
+CTL[1] (folder *CoreTreeLabelling*) improves the state-of-the-art 2-hop pruned landmark labeling approach, by first decomposing the input graph in a large core and a forest of smaller trees, and then constructing two different indices on the core-tree structure previously generated.
+Distance queries can be answered exactly as the min between the distances provided by the two indices.
+
+HL [2] (folder *highway_labelling-master*) is a landmark-based algorithm that first selects a set of *l* vertices, and then populates two indices: the highway and the distance index.
+The distance index is populated starting BFSs from the *l* vertices, and is guaranteed to be minimal given that set of vertices.
+At query time, the algorithm first finds an upper-bound to the distance exploiting the highway index, and then, finds the distance in a sparsified version of the original graph.
+
+Both approaches are designed for connected graphs, and hence do not guarantee to provide exact answers when the graph is disconnected.
+We used them to construct indices for the s-line graphs of the hypergraphs.
+
+### Usage
+
+Both approaches assume that the node ids take values in [0, |V|], where |V| is the total number of vertices in the graph.
+If you need to remap the vertices (and hence the query files), you can use the Python script *graph_query_remapping.py*.
+The script includes some comments on its usage.
+
+The meta-structures used by the algorithms can be created using the bash script *preprocessing.sh*. 
+This script includes some variables that must be properly set:
+    1. *file_path*: path to the graph files
+    2. *datasets*: space-separated list of graph names
+    3. *proj*: space separated list of s values, where each value gives the name of the s-line graph
+    4. other parameters: CTL requires a list of tree-witdh values (*tws*), while HL requires a list of numbers of vertices (*lands*)
+
+The queries can be answered using the bash script *query.sh*.
+This script includes some comments on its usage.
+
+For further information, please refer to the readme files included in the folders, or to the original repositories [3, 4].
+
 ## License
 
 This package is free for use (GNU General Public License). 
-If you use part of this code in your projects, please cite the following work:
+
+## References
+
+[1] Wentao Li, Miao Qiao, Lu Qin, Ying Zhang, Lijun Chang, and Xuemin Lin. 2020. Scaling up distance labeling on graphs with core-periphery properties. In SIGMOD. 1367–1381.
+[2] Muhammad Farhan, Qing Wang, Yu Lin, and Brendan Mckay. 2019. A highly scalable labelling approach for exact distance queries in complex networks. In EDBT.
+[3] [Core-Tree Labelling Code](https://wentaoli-92.github.io/file/CTL_CODE_2020.zip)
+[4] [Highway Labelling Repository](https://github.com/mufarhan/highway_labelling)
