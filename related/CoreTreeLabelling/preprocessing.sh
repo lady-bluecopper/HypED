@@ -10,33 +10,39 @@ datasets=( threads-stack-overflow-2 )
 # each value is the name of the folder
 # where the s-line graph and the query file are placed
 proj=( 1 2 3 4 5 6 7 8 9 10 )
+# number of tree-width values to test
+tws=( 10 20 100 200 )
 
 
-for dataset in ${datasets[@]}
+for t in ${tws[@]}
 do
-	for s in ${proj[@]}
+	echo "Tree Width $t"
+	for dataset in ${datasets[@]}
 	do
-		if [ -e ${file_path}/${dataset}/${s}/graph.txt ]; then
-			num_edges=$(wc -l < ${file_path}/${dataset}/${s}/graph.txt)
-			if [ $num_edges -gt 1 ]; then
-				start=$(($(date +%s%N)/1000000))
-				./run txt-to-bin ${file_path}/${dataset}/${s}/
-				end=$(($(date +%s%N)/1000000))
-				runtime=$((end-start))
-				echo "${dataset} ${s} convert ${runtime}"
+		for s in ${proj[@]}
+		do
+			if [ -e ${file_path}/${dataset}/${s}/graph.txt ]; then
+				num_edges=$(wc -l < ${file_path}/${dataset}/${s}/graph.txt)
+				if [ $num_edges -gt 1 ]; then
+					start=$(($(date +%s%N)/1000000))
+					./run txt-to-bin ${file_path}/${dataset}/${s}/
+					end=$(($(date +%s%N)/1000000))
+					runtime=$((end-start))
+					echo "${dataset} ${s} convert ${runtime}"
 
-				start=$(($(date +%s%N)/1000000))
-				./run decompose_bt ${file_path}/${dataset}/${s}/ $1 32
-				end=$(($(date +%s%N)/1000000))
-				runtime=$((end-start))
-				echo "${dataset} ${s} tree-index ${runtime}"
+					start=$(($(date +%s%N)/1000000))
+					./run decompose_bt ${file_path}/${dataset}/${s}/ $t 32
+					end=$(($(date +%s%N)/1000000))
+					runtime=$((end-start))
+					echo "${dataset} ${s} tree-index ${runtime}"
 
-				start=$(($(date +%s%N)/1000000))
-				./run decompose_core ${file_path}/${dataset}/${s}/ $1 32
-				end=$(($(date +%s%N)/1000000))
-				runtime=$((end-start))
-				echo "${dataset} ${s} core-index ${runtime}"
+					start=$(($(date +%s%N)/1000000))
+					./run decompose_core ${file_path}/${dataset}/${s}/ $t 32
+					end=$(($(date +%s%N)/1000000))
+					runtime=$((end-start))
+					echo "${dataset} ${s} core-index ${runtime}"
+				fi
 			fi
-		fi
+		done
 	done
 done
