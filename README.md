@@ -19,7 +19,18 @@ The package includes a Jupyter Notebook (*Results.ipynb*) with the results of th
 
 ## Requirements
 
+To run our code:
+
 	Java JRE v1.8.0
+	
+To run the competitors' code:
+
+	C++11
+	OpenMP
+	
+To check the results of our experimental evaluation:
+
+	Jupyter Notebook
 
 ## Input Format
 
