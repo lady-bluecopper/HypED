@@ -1,5 +1,7 @@
 # HypED
 
+![HypED](.img/hyped.jpg "HypED")
+
 ## Overview
 This package includes an algorithm to answer point-to-point s-distance queries in hypergraphs, approximately.
 The algorithm can answer three types of queries: vertex-to-hyperedge, vertex-to-vertex, and hyperedge-to-hyperedge.
