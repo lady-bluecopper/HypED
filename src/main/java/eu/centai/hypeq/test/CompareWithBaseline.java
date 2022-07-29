@@ -1,6 +1,5 @@
 package eu.centai.hypeq.test;
 
-import eu.centai.hyped.cc.ConnectedComponents;
 import eu.centai.hypeq.oracle.structures.DistanceOracle;
 import eu.centai.hypeq.oracle.structures.DistanceProfile;
 import eu.centai.hypeq.structures.HyperGraph;
@@ -15,7 +14,6 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 import org.javatuples.Pair;
-import org.javatuples.Triplet;
 
 /**
  * Class used to compare the performance of three kinds of oracles.

@@ -317,6 +317,17 @@ public class DistanceOracle {
     }
     
     /**
+     * 
+     * @param vMap for each vertex, the set of hyperedges including that vertex
+     * @param u vertex id
+     * @param v vertex id
+     * @return true if they belong to a common hyperedge; false otherwise
+     */
+    public boolean inCommonHyperEdge(Map<Integer, Set<Integer>> vMap, int u, int v) {
+        return Utils.intersect(vMap.getOrDefault(u, Sets.newHashSet()), vMap.getOrDefault(v, Sets.newHashSet()));
+    }
+    
+    /**
      * If the s-cc including e1 and e2 has size not greater than lb, the distance
      * between e1 and e2 is approximated according to the topology of the s-cc.
      * 
@@ -380,6 +391,9 @@ public class DistanceOracle {
             int v2, 
             int s, 
             int lb) {
+        if (inCommonHyperEdge(vMap, v1, v2)) {
+            return new Triplet<>(1., 1., 1.);
+        }
         Triplet<Double, Double, Double> approxVDist = new Triplet<>(Double.MAX_VALUE, Double.MAX_VALUE, Double.MAX_VALUE);
         for (int e1 : getSHyperEdgesOf(vMap, v1, s)) {
             for (int e2 : getSHyperEdgesOf(vMap, v2, s)) {
@@ -459,7 +473,6 @@ public class DistanceOracle {
                     div += 1;
                 }   break;
         }
-//        System.out.println("SUM=" + sum + " , DIV=" + div + " OUT=" + sum/div);
         return sum/div;
     }
     
