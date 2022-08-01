@@ -149,60 +149,6 @@ public class Helper {
     }
     
     /**
-     * Samples numLabels labels, and then samples numQueries elements per label.
-     * 
-     * @param labels map with the label of each element
-     * @param numLabels number of labels to sample
-     * @return a sample of numQueries random elements for 5 random tags
-     * @throws IOException 
-     */
-    public static List<List<Integer>> sampleByTag(Map<Integer, String> labels, int numLabels) throws IOException {
-        // filter labels with at least numQueries elements
-        List<Map.Entry<String, Long>> labelsOcc = labels.entrySet()
-                .stream()
-                .collect(Collectors.groupingBy(e -> e.getValue(), Collectors.counting()))
-                .entrySet()
-                .stream()
-                .collect(Collectors.toList());
-        // sample 5 labels at random
-        RandomSamplingCollector<String> labelCollector = LiLSampling.collector(
-                numLabels, 
-                new Random(Settings.seed));
-        List<String> selectableLabels;
-        if (Settings.dataFile.contains("dblp")) {
-            System.out.println("DBLP");
-            // force selection of interesting labels
-            selectableLabels = Lists.newArrayList(
-                    "ICDE", "ICDM", "KDD", 
-                    "SIGMOD Conference", "WWW");
-        } else {
-            selectableLabels = labelsOcc
-                .stream()
-                .filter(e -> e.getValue() >= Settings.numQueries)
-                .map(e -> e.getKey())
-                .collect(labelCollector)
-                .stream()
-                .collect(Collectors.toList());
-        }
-        // sample numQueries elements for each label
-        Map<String, Set<Integer>> itemsPerLabel = labels.entrySet()
-                .stream()
-                .collect(Collectors.groupingBy(e -> e.getValue(), 
-                        Collectors.mapping(e -> e.getKey(), Collectors.toSet())));
-        RandomSamplingCollector<Integer> collector = LiLSampling.collector(
-                Settings.numQueries, 
-                new Random(Settings.seed));
-        return selectableLabels
-                .stream()
-                .map(label -> itemsPerLabel.get(label)
-                        .stream()
-                        .collect(collector)
-                        .stream()
-                        .collect(Collectors.toList()))
-                .collect(Collectors.toList());
-    }
-    
-    /**
      * Creates a distance oracle for the given hypergraph, or loads it from disk.
      * 
      * @param graph hypergraph

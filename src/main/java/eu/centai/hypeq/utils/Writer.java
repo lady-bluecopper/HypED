@@ -9,7 +9,6 @@ import eu.centai.hypeq.oracle.structures.DistanceProfile;
 import eu.centai.hypeq.oracle.structures.OracleSerializer;
 import eu.centai.hypeq.oracle.structures.SDistanceOracle;
 import eu.centai.hypeq.oracle.structures.SOracleSerializer;
-import eu.centai.hypeq.structures.HyperEdge;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
@@ -179,58 +178,6 @@ public class Writer {
                 }
             }
         }
-        fwP.close();
-    }
-    
-    /**
-     * Write s-distance pairs on disk.
-     *
-     * @param profiles refined distance profiles
-     * @param folder folder where to store the file
-     * @param id identifier for the experiment
-     * @throws IOException
-     */
-    public static void writeRefinedProfiles(Map<Pair<Integer, Integer>, DistanceProfile> profiles,
-            String folder,
-            String id) throws IOException {
-
-        String method = Settings.landmarkSelection;
-
-        if (method.equalsIgnoreCase("bestcover") || method.equalsIgnoreCase("between")) {
-            method += ("_" + Settings.samplePerc);
-        }
-
-        String fName = Settings.dataFile
-                + "_S" + Settings.maxS
-                + "_L" + Settings.numLandmarks
-                + "_LB" + Settings.lb
-                + "_Q" + Settings.numQueries
-                + "_M" + method
-                + "_LA" + Settings.landmarkAssignment
-                + "_A" + Settings.alpha
-                + "_B" + Settings.beta
-                + "_ID" + id + ".txt";
-        FileWriter fwP = new FileWriter(folder + fName);
-        profiles.values().stream().forEach(profile ->
-            profile.getDistanceProfile().entrySet().forEach(entry -> {
-                double approx;
-                if (entry.getValue().getValue1() < 0) {
-                    approx = -1;
-                } else {
-                    approx = entry.getValue().getValue0() + 
-                        (entry.getValue().getValue1() - entry.getValue().getValue0()) / 2;
-                }
-            try {
-                // u v s real lb up approx
-                fwP.write(profile.getFirstId() + " " + profile.getSecondId()
-                        + " " + entry.getKey() + " " + entry.getValue().getValue2() 
-                        + " " + entry.getValue().getValue0()
-                        + " " + entry.getValue().getValue1() 
-                        + " " + approx + "\n");
-            } catch (IOException ex) {
-                ex.printStackTrace();
-            }})
-        );
         fwP.close();
     }
     

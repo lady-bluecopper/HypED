@@ -263,29 +263,8 @@ do
 		done
 	fi
 
+
         if [[ ${experiments[7]} -eq "1" ]]; then
-                echo '-----------------------------'
-                echo '      Search By Tag          '
-                echo '-----------------------------'
-
-                OUTPUT="$output_data/search/"
-                mkdir -p $OUTPUT
-
-                lands=(`echo ${test_lands[${dataset}]}|tr "," "\n"`)
-
-                for strategy in ${landmarkSelection[*]}
-                do
-                        for l in ${lands[*]}
-                        do
-                        	echo "Running command ..."
-                                echo "$JVM $SEARCH_jar dataFolder=${input_data} outputFolder=$OUTPUT dataFile=${dataset}.hg numLandmarks=$l samplePerc=${defaults[1]} landmarkSelection=$strategy numQueries=${defaults[2]} store=${defaults[5]} landmarkAssignment=$landmarkAssignment lb=${defaults[3]} maxS=${defaults[4]} alpha=$alpha beta=$beta seed=$seed isApproximate=$isApproximate kind=$kind"
-                                echo "---- `date`"
-                                $JVM $SEARCH_jar dataFolder=${input_data} outputFolder=$OUTPUT dataFile=${dataset}.hg numLandmarks=$l samplePerc=${defaults[1]} landmarkSelection=$strategy store=${defaults[5]} numQueries=${defaults[2]} landmarkAssignment=$landmarkAssignment lb=${defaults[3]} maxS=${defaults[4]} alpha=$alpha beta=$beta seed=$seed isApproximate=$isApproximate kind=$kind
-                        done
-                done
-        fi
-
-        if [[ ${experiments[8]} -eq "1" ]]; then
                 echo '---------------------------'
                 echo '       Line Graph          '
                 echo '---------------------------'
