@@ -25,7 +25,7 @@ public class CompareLSStrategies {
         //parse the command line arguments
         CMDLParser.parse(args);
 
-        HyperGraph graph = Reader.loadGraph(Settings.dataFolder + Settings.dataFile, false);
+        HyperGraph graph = Reader.loadGraph(Settings.dataFolder + Settings.dataFile, true);
         // settings
         String[] strategies = new String[]{"random", "degree", "farthest", "bestcover", "between"};
         double[] importance;

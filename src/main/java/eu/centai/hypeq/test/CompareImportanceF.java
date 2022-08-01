@@ -25,7 +25,7 @@ public class CompareImportanceF {
         //parse the command line arguments
         CMDLParser.parse(args);
 
-        HyperGraph graph = Reader.loadGraph(Settings.dataFolder + Settings.dataFile, false);
+        HyperGraph graph = Reader.loadGraph(Settings.dataFolder + Settings.dataFile, true);
         // settings
         double[] alphas;
         double[] betas;
