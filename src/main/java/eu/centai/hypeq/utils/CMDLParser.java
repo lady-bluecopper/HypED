@@ -55,7 +55,9 @@ public class CMDLParser {
             Settings.isApproximate = Boolean.valueOf(value);
         } else if (key.compareToIgnoreCase("kind") == 0) {
             Settings.kind = value;
-        } 
+        } else if (key.compareToIgnoreCase("k") == 0) {
+            Settings.k = Integer.parseInt(value);
+        }
     }
     
 }

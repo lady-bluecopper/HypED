@@ -2,8 +2,6 @@ package eu.centai.hypeq.test.helpers;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import gr.james.sampling.LiLSampling;
-import gr.james.sampling.RandomSamplingCollector;
 import eu.centai.hyped.cc.ConnectedComponents;
 import eu.centai.hypeq.oracle.structures.DistanceOracle;
 import eu.centai.hypeq.oracle.structures.DistanceProfile;
@@ -12,6 +10,8 @@ import eu.centai.hypeq.utils.Reader;
 import eu.centai.hypeq.utils.Settings;
 import eu.centai.hypeq.utils.StopWatch;
 import eu.centai.hypeq.utils.Writer;
+import gr.james.sampling.LiLSampling;
+import gr.james.sampling.RandomSamplingCollector;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Collection;
@@ -146,6 +146,50 @@ public class Helper {
             refined.put(profile.getKey(), new DistanceProfile(p, q, approxDist));
         });
         return refined;
+    }
+    
+    /**
+     * 
+     * @param labels map with the label of each element
+     * @param numLabels number of labels to sample
+     * @return a sample of numQueries random elements for 5 random tags
+     * @throws IOException 
+     */
+    public static List<List<Integer>> sampleByTag(Map<Integer, String> labels, int numLabels) throws IOException {
+        // filter labels with at least numQueries elements
+        List<Map.Entry<String, Long>> labelsOcc = labels.entrySet()
+                .stream()
+                .collect(Collectors.groupingBy(e -> e.getValue(), Collectors.counting()))
+                .entrySet()
+                .stream()
+                .collect(Collectors.toList());
+        // sample 5 labels at random
+        RandomSamplingCollector<String> labelCollector = LiLSampling.collector(
+                numLabels, 
+                new Random(Settings.seed));
+        List<String> selectableLabels = labelsOcc
+                .stream()
+                .filter(e -> e.getValue() >= Settings.numQueries)
+                .map(e -> e.getKey())
+                .collect(labelCollector)
+                .stream()
+                .collect(Collectors.toList());
+        // sample numQueries elements for each label
+        Map<String, Set<Integer>> itemsPerLabel = labels.entrySet()
+                .stream()
+                .collect(Collectors.groupingBy(e -> e.getValue(), 
+                        Collectors.mapping(e -> e.getKey(), Collectors.toSet())));
+        RandomSamplingCollector<Integer> collector = LiLSampling.collector(
+                Settings.numQueries, 
+                new Random(Settings.seed));
+        return selectableLabels
+                .stream()
+                .map(label -> itemsPerLabel.get(label)
+                        .stream()
+                        .collect(collector)
+                        .stream()
+                        .collect(Collectors.toList()))
+                .collect(Collectors.toList());
     }
     
     /**

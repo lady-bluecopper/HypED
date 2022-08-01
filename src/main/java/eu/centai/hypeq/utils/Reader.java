@@ -299,6 +299,25 @@ public class Reader {
     }
     
     /**
+     * Reads query elements for from file.
+     * 
+     * @param fileName path of the query file
+     * @return a set of elements (vertex or hyperedge ids)
+     * @throws IOException 
+     */
+    public static List<Integer> readQueries(String fileName) throws IOException {
+        
+        final BufferedReader rows = new BufferedReader(new FileReader(fileName));
+        List<Integer> queries = Lists.newArrayList();
+        String line;
+        while ((line = rows.readLine()) != null) {
+            queries.add(Integer.parseInt(line.trim()));
+        }
+        rows.close();
+        return queries;
+    }
+    
+    /**
      * Reads pairs of elements from a file.
      * 
      * @param fileName path to the query file

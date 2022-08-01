@@ -39,4 +39,6 @@ public class Settings {
     // 2. "vertex" (vertex to vertex)
     // 3. "both" (vertex to edge)
     public static String kind = "edge";
+    // number of top reachable elements to extract from the oracle
+    public static int k = 20;
 }

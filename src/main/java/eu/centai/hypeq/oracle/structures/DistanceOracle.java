@@ -305,6 +305,95 @@ public class DistanceOracle {
     /**
      * 
      * @param vMap for each vertex, the set of hyperedges including that vertex
+     * @param v element id (vertex or hyperedge)
+     * @param label label of the element (if any); NONE otherwise
+     * @param kind type of s-distance to compute (vertex, edge, both)
+     * @return the s-distances, for all the elements reachable from v
+     */
+    public ReachableProfile createReachableProfile(
+            Map<Integer, Set<Integer>> vMap, 
+            int v, 
+            String label,
+            String kind) {
+        ReachableProfile sp = new ReachableProfile(v, label);
+        for (int s = 1; s <= oracles.length; s++) {
+            Map<Integer, Integer> lbs = Maps.newHashMap();
+            Map<Integer, Integer> ubs = Maps.newHashMap();
+            Map<Integer, Map<Integer, Integer>> distances = oracles[s-1].getLabels();
+            // if kind = edge, it includes only v; otherwise it includes all the 
+            // hyperedges including v
+            List<Integer> sources = Lists.newArrayList();
+            if (Settings.kind.equalsIgnoreCase("edge")) {
+                sources.add(v);
+            } else {
+                sources.addAll(vMap.getOrDefault(v, Sets.newHashSet()));
+            }
+            for (int e1 : sources) {
+                // find lower and upper bounds to the s-distances to all the 
+                // reachable hyperedges
+                Map<Integer, Integer> map1 = distances.getOrDefault(e1, Maps.newHashMap());
+                for (int e2 : distances.keySet()) {
+                    if (e1 == e2) {
+                        // save distances from landmarks
+                        map1.entrySet().forEach(entry -> {
+                            lbs.put(entry.getKey(), Math.max(lbs.getOrDefault(entry.getKey(), -1), entry.getValue()));
+                            ubs.put(entry.getKey(), Math.min(ubs.getOrDefault(entry.getKey(), Integer.MAX_VALUE), entry.getValue()));
+                        });
+                    } else {
+                        // use landmarks to get distances to all the other reachable hyperedges
+                        Map<Integer, Integer> map2 = distances.get(e2);
+                        map2.entrySet().forEach(entry -> {
+                            if (map1.containsKey(entry.getKey())) {
+                                int thisUpper = map1.get(entry.getKey()) + entry.getValue();
+                                int thisLower = Math.abs(map1.get(entry.getKey()) - entry.getValue());
+                                lbs.put(e2, Math.max(lbs.getOrDefault(e2, -1), thisLower));
+                                ubs.put(e2, Math.min(ubs.getOrDefault(e2, Integer.MAX_VALUE), thisUpper));
+                            }
+                        });
+                    }
+                }
+            }
+            
+            if (!kind.equalsIgnoreCase("vertex")) {
+                for (Entry<Integer, Integer> entry : lbs.entrySet()) {
+                    double est = entry.getValue() + (ubs.get(entry.getKey()) - entry.getValue()) / 2;
+                    sp.addReachable(entry.getKey(), s, est);
+                }
+            // if kind is vertex, we need to find the distances to the vertices
+            } else {
+                // find lower and upper bounds to the s-distances from v to all the
+                // reachable vertices
+                Map<Integer, Integer> vertexlbs = Maps.newHashMap();
+                Map<Integer, Integer> vertexubs = Maps.newHashMap();
+                Map<Integer, List<Integer>> invVMap = Maps.newHashMap();
+                for (int w : vMap.keySet()) {
+                    vMap.get(w).stream()
+                            .filter(he -> lbs.containsKey(he))
+                            .forEach(he -> {
+                                List<Integer> tmp = invVMap.getOrDefault(he, Lists.newArrayList());
+                                tmp.add(w);
+                                invVMap.put(he, tmp);
+                            });
+                }
+                for (int eid : lbs.keySet()) {
+                    for (int u : invVMap.get(eid)) {
+                    vertexlbs.put(u, Math.max(vertexlbs.getOrDefault(u, -1), lbs.get(eid)));
+                    vertexubs.put(u, Math.min(vertexubs.getOrDefault(u, Integer.MAX_VALUE), ubs.get(eid)));
+                    }
+                }
+                for (int u : vertexlbs.keySet()) {
+                    double est = vertexlbs.get(u) + (vertexubs.get(u) - vertexlbs.get(u)) / 2;
+                    sp.addReachable(u, s, est);
+                }
+            }
+        }
+        System.out.println("Reachable Profile for " + v + " has Size = " + sp.getReachables().size());
+        return sp;
+    }
+    
+    /**
+     * 
+     * @param vMap for each vertex, the set of hyperedges including that vertex
      * @param v vertex id
      * @param s min overlap size
      * @return list of hyperedges of size not lower than s and including v

@@ -182,6 +182,50 @@ public class Writer {
     }
     
     /**
+     * Write s-reachable elements on disk. 
+     *
+     * @param reachables each pair (u, lst) includes the list lst of elements 
+     * s-reachable from u
+     * @param id identifier for the experiment
+     * @throws IOException
+     */
+    public static void writeReachable(List<Pair<Integer, List<Triplet<Integer, Integer, Double>>>> reachables,
+            String id) throws IOException {
+
+        String method = Settings.landmarkSelection;
+
+        if (method.equalsIgnoreCase("bestcover") || method.equalsIgnoreCase("between")) {
+            method += ("_" + Settings.samplePerc);
+        }
+
+        String fName = Settings.dataFile
+                + "_S" + Settings.maxS
+                + "_L" + Settings.numLandmarks
+                + "_LB" + Settings.lb
+                + "_Q" + Settings.numQueries
+                + "_M" + method
+                + "_LA" + Settings.landmarkAssignment
+                + "_A" + Settings.alpha
+                + "_B" + Settings.beta
+                + "_ID" + id + ".txt";
+        FileWriter fwP = new FileWriter(Settings.outputFolder + fName);
+        reachables.stream().forEach(pair -> {
+            for (Triplet<Integer, Integer, Double> t : pair.getValue1()) {
+                try {
+                    // source, destination, s, s-distance
+                    fwP.write(pair.getValue0() + " "
+                            + t.getValue1() + " "
+                            + t.getValue0() + " "
+                            + t.getValue2() + "\n");
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                }
+            }
+        });
+        fwP.close();
+    }
+    
+    /**
      * Write s-line graph on disk as list of edges (no weight).
      *
      * @param lineGraph line graph
