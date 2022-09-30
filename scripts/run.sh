@@ -263,8 +263,88 @@ do
 		done
 	fi
 
+	if [[ ${experiments[7]} -eq "1" ]]; then
+		echo '--------------------------------------'
+		echo '       s-Centrality Calculation       '
+		echo '--------------------------------------'
 
-        if [[ ${experiments[7]} -eq "1" ]]; then
+		OUTPUT="$output_data/queries"
+		mkdir -p $OUTPUT
+		if [[ $isApproximate == "true" ]]; then
+			OUTPUT2="$OUTPUT/approx/"
+		else
+			OUTPUT2="$OUTPUT/real/"
+		fi
+		mkdir -p $OUTPUT2
+
+		lands=(`echo ${test_lands[${dataset}]}|tr "," "\n"`)
+
+		for strategy in ${landmarkSelection[*]}
+		do
+			for l in ${lands[*]}
+			do
+				if [[ $landmarkAssignment == "ranking" ]]; then
+					echo "Running command ..."
+					echo "$JVM $HYPERC_jar dataFolder=${input_data} outputFolder=$OUTPUT2 dataFile=${dataset}.hg queryFile=${queryFile} numLandmarks=$l samplePerc=${defaults[1]} landmarkSelection=$strategy store=${defaults[5]} landmarkAssignment=$landmarkAssignment lb=${defaults[3]} maxS=${defaults[4]} alpha=$alpha beta=$beta seed=$seed isApproximate=$isApproximate kind=$kind"
+					echo "---- `date`"
+					$JVM $HYPERC_jar dataFolder=${input_data} outputFolder=$OUTPUT2 dataFile=${dataset}.hg queryFile=${queryFile} numLandmarks=$l samplePerc=${defaults[1]} landmarkSelection=$strategy store=${defaults[5]} landmarkAssignment=$landmarkAssignment lb=${defaults[3]} maxS=${defaults[4]} alpha=$alpha beta=$beta seed=$seed isApproximate=$isApproximate kind=$kind
+				else
+                                        for run in {1..5}
+                                        do
+                                                OUT2="$OUTPUT2$run/"
+						mkdir -p $OUT2
+                                                echo "Running command ..."
+                                                echo "$JVM $HYPERC_jar dataFolder=${input_data} outputFolder=$OUT2 dataFile=${dataset}.hg queryFile=${queryFile} numLandmarks=$l samplePerc=${defaults[1]} landmarkSelection=$strategy store=${defaults[5]} landmarkAssignment=$landmarkAssignment lb=${defaults[3]} maxS=${defaults[4]} alpha=$alpha beta=$beta seed=$run isApproximate=$isApproximate kind=$kind"
+                                                echo "---- `date`"
+                                               $JVM $HYPERC_jar dataFolder=${input_data} outputFolder=$OUT2 dataFile=${dataset}.hg queryFile=${queryFile} numLandmarks=$l samplePerc=${defaults[1]} landmarkSelection=$strategy store=${defaults[5]} landmarkAssignment=$landmarkAssignment lb=${defaults[3]} maxS=${defaults[4]} alpha=$alpha beta=$beta seed=$run isApproximate=$isApproximate kind=$kind
+                                        done
+                                fi
+			done
+		done
+	fi
+
+	if [[ ${experiments[8]} -eq "1" ]]; then
+		echo '--------------------------------------'
+		echo '          Top-k s-Reachable           '
+		echo '--------------------------------------'
+
+		OUTPUT="$output_data/topk"
+		mkdir -p $OUTPUT
+		if [[ $isApproximate == "true" ]]; then
+			OUTPUT2="$OUTPUT/approx/"
+		else
+			OUTPUT2="$OUTPUT/real/"
+		fi
+		mkdir -p $OUTPUT2
+
+		lands=(`echo ${test_lands[${dataset}]}|tr "," "\n"`)
+
+		for strategy in ${landmarkSelection[*]}
+		do
+			for l in ${lands[*]}
+			do
+				if [[ $landmarkAssignment == "ranking" ]]; then
+					echo "Running command ..."
+					echo "$JVM $HYPERK_jar dataFolder=${input_data} outputFolder=$OUTPUT2 dataFile=${dataset}.hg queryFile=${queryFile} numLandmarks=$l samplePerc=${defaults[1]} landmarkSelection=$strategy store=${defaults[5]} landmarkAssignment=$landmarkAssignment lb=${defaults[3]} maxS=${defaults[4]} alpha=$alpha beta=$beta seed=$seed isApproximate=$isApproximate kind=$kind k=$k"
+					echo "---- `date`"
+					$JVM $HYPERK_jar dataFolder=${input_data} outputFolder=$OUTPUT2 dataFile=${dataset}.hg queryFile=${queryFile} numLandmarks=$l samplePerc=${defaults[1]} landmarkSelection=$strategy store=${defaults[5]} landmarkAssignment=$landmarkAssignment lb=${defaults[3]} maxS=${defaults[4]} alpha=$alpha beta=$beta seed=$seed isApproximate=$isApproximate kind=$kind k=$k
+				else
+                                        for run in {1..5}
+                                        do
+                                                OUT2="$OUTPUT2$run/"
+						mkdir -p $OUT2
+                                                echo "Running command ..."
+                                                echo "$JVM $HYPERK_jar dataFolder=${input_data} outputFolder=$OUT2 dataFile=${dataset}.hg queryFile=${queryFile} numLandmarks=$l samplePerc=${defaults[1]} landmarkSelection=$strategy store=${defaults[5]} landmarkAssignment=$landmarkAssignment lb=${defaults[3]} maxS=${defaults[4]} alpha=$alpha beta=$beta seed=$run isApproximate=$isApproximate kind=$kind k=$k"
+                                                echo "---- `date`"
+                                               $JVM $HYPERK_jar dataFolder=${input_data} outputFolder=$OUT2 dataFile=${dataset}.hg queryFile=${queryFile} numLandmarks=$l samplePerc=${defaults[1]} landmarkSelection=$strategy store=${defaults[5]} landmarkAssignment=$landmarkAssignment lb=${defaults[3]} maxS=${defaults[4]} alpha=$alpha beta=$beta seed=$run isApproximate=$isApproximate kind=$kind k=$k
+                                        done
+                                fi
+			done
+		done
+	fi
+
+
+        if [[ ${experiments[9]} -eq "1" ]]; then
                 echo '---------------------------'
                 echo '       Line Graph          '
                 echo '---------------------------'
