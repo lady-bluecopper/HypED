@@ -182,6 +182,47 @@ public class Writer {
     }
     
     /**
+     * Write s-centrality values on disk.
+     *
+     * @param real real s-centralities
+     * @param approx approximate s-centralities
+     * @param id identifier for the experiment
+     * @throws IOException
+     */
+    public static void writeCentralities(Map<Integer, Double> real,
+            Map<Integer, Double> approx,
+            String id) throws IOException {
+
+        String method = Settings.landmarkSelection;
+
+        if (method.equalsIgnoreCase("bestcover") || method.equalsIgnoreCase("between")) {
+            method += ("_" + Settings.samplePerc);
+        }
+
+        String fName = Settings.dataFile
+                + "_S" + Settings.maxS
+                + "_L" + Settings.numLandmarks
+                + "_LB" + Settings.lb
+                + "_Q" + Settings.numQueries
+                + "_M" + method
+                + "_LA" + Settings.landmarkAssignment
+                + "_A" + Settings.alpha
+                + "_B" + Settings.beta
+                + "_CENT" + id + ".txt";
+        
+        FileWriter fwP = new FileWriter(Settings.outputFolder + fName);
+        approx.entrySet().forEach(en -> {
+            double realC = real.getOrDefault(en.getKey(), en.getValue());
+            try {
+                fwP.write(en.getKey() + " " + realC + " " + en.getValue() + "\n");
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+        });
+        fwP.close();
+    }
+    
+    /**
      * Write s-reachable elements on disk. 
      *
      * @param reachables each pair (u, lst) includes the list lst of elements 
@@ -219,6 +260,65 @@ public class Writer {
                             + t.getValue2() + "\n");
                 } catch (IOException ex) {
                     ex.printStackTrace();
+                }
+            }
+        });
+        fwP.close();
+    }
+    
+    /**
+     * Write top-k s-reachable elements, for various s and query elements, on disk. 
+     *
+     * @param reals for each s, for each element in queries, the sorted real top-k 
+     * s-reachable elements; if Settings.isApproximate, then reals is empty.
+     * @param approx for each s, for each element in queries, the sorted approximate
+     * top-k s-reachable elements.
+     * @param queries query elements
+     * @param id identifier for the experiment
+     * @throws IOException
+     */
+    public static void writeTopKReachable(Map<Integer, int[][]> reals,
+            Map<Integer, int[][]> approx,
+            List<Integer> queries,
+            String id) throws IOException {
+
+        String method = Settings.landmarkSelection;
+
+        if (method.equalsIgnoreCase("bestcover") || method.equalsIgnoreCase("between")) {
+            method += ("_" + Settings.samplePerc);
+        }
+
+        String fName = Settings.dataFile
+                + "_S" + Settings.maxS
+                + "_L" + Settings.numLandmarks
+                + "_LB" + Settings.lb
+                + "_Q" + Settings.numQueries
+                + "_M" + method
+                + "_LA" + Settings.landmarkAssignment
+                + "_A" + Settings.alpha
+                + "_B" + Settings.beta
+                + "_K" + Settings.k
+                + "_ID" + id + ".txt";
+        FileWriter fwP = new FileWriter(Settings.outputFolder + fName);
+        approx.entrySet().stream().forEach(entry -> {
+            for (int i = 0; i < queries.size(); i++) {
+                for (int j = 0; j < Settings.k; j++) {
+                    try {
+                        // query, neighbor (approx), neighbor (real), s
+                        if (reals.isEmpty()) {
+                            fwP.write(queries.get(i) + " "
+                                    + entry.getValue()[i][j] + " "
+                                    + entry.getValue()[i][j] + " "
+                                    + entry.getKey() + "\n");
+                        } else {
+                            fwP.write(queries.get(i) + " "
+                                    + entry.getValue()[i][j] + " "
+                                    + reals.get(entry.getKey())[i][j] + " "
+                                    + entry.getKey() + "\n");
+                        }
+                    } catch (IOException ex) {
+                        ex.printStackTrace();
+                    }
                 }
             }
         });

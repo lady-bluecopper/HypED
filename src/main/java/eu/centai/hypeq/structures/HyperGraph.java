@@ -20,6 +20,7 @@ import java.util.Map.Entry;
 import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.javatuples.Pair;
@@ -588,7 +589,7 @@ public class HyperGraph {
     
         Set<Integer> visited = Sets.newHashSet();
         Map<Integer, Integer> distances = Maps.newHashMap();
-        String startLabel = labels.get(start);
+        String startLabel = (labels != null) ? labels.get(start) : "";
         Queue<Pair<Integer, Integer>> queue = new PriorityQueue(new Comparator<Pair<Integer, Integer>>() {
             @Override
             public int compare(Pair<Integer, Integer> o1, Pair<Integer, Integer> o2) {
@@ -606,13 +607,9 @@ public class HyperGraph {
             for (int ngb : hyperedges.get(eID).getSNeighbours(s)) {
                 if (visited.add(ngb)) {
                     distances.put(ngb, step);
-                    if (!kind.equalsIgnoreCase("vertex") && 
-                            labels.get(ngb).equalsIgnoreCase(startLabel)) {
-                        reached += 1;
-                    } else if (kind.equalsIgnoreCase("vertex") && 
-                            getEdge(ngb).getVertices()
-                                    .stream()
-                                    .anyMatch(v -> labels.get(v).equalsIgnoreCase(startLabel))) {
+                    if (labels == null || 
+                            !kind.equalsIgnoreCase("vertex") && labels.get(ngb).equalsIgnoreCase(startLabel) ||
+                            kind.equalsIgnoreCase("vertex") && getEdge(ngb).getVertices().stream().anyMatch(v -> labels.get(v).equalsIgnoreCase(startLabel))) {
                         reached += 1;
                     }
                     queue.add(new Pair<>(ngb, step + 1));
@@ -770,6 +767,27 @@ public class HyperGraph {
     
     /**
      *
+     * @param sample hyperedges/vertices
+     * @param s min overlap size
+     * @param kind kind of distance to compute, among "edge" (edge to edge),
+     * "vertex" (vertex to vertex), and "both" (vertex to edge)
+     * @return s-centrality for each element in the sample
+     */
+    public Map<Integer, Double> computeSCentralities(
+            Collection<Integer> sample,
+            int s,
+            String kind) {
+        if (kind.equalsIgnoreCase("edge")) {
+            return computeEdgeSCentrality(sample, s);
+        }
+        if (kind.equalsIgnoreCase("vertex") || kind.equalsIgnoreCase("both")) {
+            return computeVertexSCentrality(sample, s);
+        }
+        throw new IllegalArgumentException("Kind " + kind + " not available.");
+    }
+    
+    /**
+     *
      * @param queries triplets (src,dest,s) of s-distances to estimate
      * @param kind kind of distance to compute, among "edge" (edge to edge),
      * "vertex" (vertex to vertex), and "both" (vertex to edge)
@@ -839,6 +857,29 @@ public class HyperGraph {
                 })
                 .collect(Collectors.toMap(k -> k.getValue0(), k -> k.getValue1()));
     }
+    
+    /**
+     *
+     * @param sample hyperedges
+     * @param s min overlap size
+     * @return s-centrality for the hyperedges in the sample
+     */
+    public Map<Integer, Double> computeEdgeSCentrality(
+            Collection<Integer> sample,
+            int s) {
+
+        return sample
+                .parallelStream()
+                .map(e -> {
+                    Map<Integer, Integer> distances = findDistancesFrom(e, s);
+                    double sum = distances.values().stream().mapToInt(i -> i).sum();
+                    if (sum > 0) {
+                        return new Pair<Integer, Double>(e, (distances.size() - 1)/sum);
+                    }
+                    return new Pair<Integer, Double>(e, -1.);
+                })
+                .collect(Collectors.toMap(k -> k.getValue0(), k -> k.getValue1()));
+    }
 
     /**
      *
@@ -898,6 +939,38 @@ public class HyperGraph {
                         dp.addDistance(tri.getValue2(), d);
                     }
                     return new Pair<Pair<Integer, Integer>, DistanceProfile>(new Pair<>(tri.getValue0(), tri.getValue1()), dp);
+                })
+                .collect(Collectors.toMap(k -> k.getValue0(), k -> k.getValue1()));
+    }
+    
+    /**
+     *
+     * @param sample vertices
+     * @param s min overlap size
+     * @return s-centrality for each vertex in the sample
+     */
+    public Map<Integer, Double> computeVertexSCentrality(
+            Collection<Integer> sample,
+            int s) {
+
+        return sample
+                .parallelStream()
+                .map(v -> {
+                    Map<Integer, Integer> distances = Maps.newHashMap();
+                    for (int e1 : getSHyperEdgesOf(v, s)) {
+                        Map<Integer, Integer> thisDistances = findDistancesFrom(e1, s);
+                        thisDistances
+                                .entrySet()
+                                .forEach(en -> distances.merge(
+                                        en.getKey(), 
+                                        en.getValue(), 
+                                        (Integer t, Integer u) -> Integer.min(t, u)));
+                    }
+                    double sum = distances.values().stream().mapToInt(i -> i).sum();
+                    if (sum > 0) {
+                        return new Pair<Integer, Double>(v, (distances.size() - 1)/sum);
+                    }
+                    return new Pair<Integer, Double>(v, -1.);
                 })
                 .collect(Collectors.toMap(k -> k.getValue0(), k -> k.getValue1()));
     }
@@ -1011,6 +1084,83 @@ public class HyperGraph {
             }
             return profiles.entrySet().stream();
         }).collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
+    }
+
+     /**
+     * Method used in {@link TopKReachable}
+     * @param queries query elements
+     * @param maxD max overlap size
+     * @param k number of closest neighbors to find
+     * @param kind kind of distance to compute, among "edge" (edge to edge),
+     * "vertex" (vertex to vertex), and "both" (vertex to edge)
+     * @return for each s up to maxD, top-k elements s-reachable from each query element
+     */
+    public Map<Integer, int[][]> findTopKReachable(
+            List<Integer> queries,
+            int maxD,
+            int k,
+            String kind) {
+        
+        Map<Integer, int[][]> topKPerS = Maps.newHashMap();
+        for (int s = 1; s <= maxD; s++) {
+            int[][] topKPerQuery = new int[queries.size()][k];
+            final int thisS = s;
+            Map<Integer, int[]> reachables = queries.stream()
+                .parallel()
+                .map(q -> {
+                    Map<Integer, Integer> reached = Maps.newHashMap();
+                    int[] sortedReached = new int[k];
+                    if (kind.equalsIgnoreCase("edge")) {
+                        if (getNumVerticesOf(q) < maxD) {
+                            for (int i = 0; i < k; i++) {
+                                sortedReached[i] = -1;
+                            }
+                            return new Pair<Integer, int[]>(q, sortedReached);
+                        }
+                        reached = findDistancesFrom(q, thisS, null, k, kind);
+                    } else {
+                        for (int e1 : getSHyperEdgesOf(q, thisS)) {
+                            Map<Integer, Integer> reachedFromE = findDistancesFrom(e1, thisS, null, k, kind);
+                            // find s-distance from e to all the reachable vertices
+                            for (Entry<Integer, Integer> entry : reachedFromE.entrySet()) {
+                                if (kind.equalsIgnoreCase("vertex")) {
+                                    for (int ngb : getVerticesOf(entry.getKey())) {
+                                        reached.put(ngb, 
+                                                Math.min(reached.getOrDefault(ngb, Integer.MAX_VALUE), 
+                                                        entry.getValue()));
+                                    }
+                                } else {
+                                    reached.put(entry.getKey(), 
+                                            Math.min(reached.getOrDefault(entry.getKey(), Integer.MAX_VALUE), 
+                                                    entry.getValue()));
+                                }
+                            }
+                        }
+                    }
+                    List<Entry<Integer, Integer>> topKReached = Lists.newArrayList(reached.entrySet());
+                    Collections.sort(topKReached, 
+                            (Entry<Integer, Integer> e1, Entry<Integer, Integer> e2) -> {
+                                if (e1.getValue().equals(e2.getValue())) {
+                                    return Integer.compare(e1.getKey(), e2.getKey());
+                                }
+                                return Integer.compare(e1.getValue(), e2.getValue());
+                            });
+                    int maxK = Math.min(k, topKReached.size());
+                    for (int i = 0; i < maxK; i++) {
+                        sortedReached[i] = topKReached.get(i).getKey();
+                    }
+                    for (int i = maxK; i < k; i++) {
+                        sortedReached[i] = -1;
+                    }
+                    return new Pair<Integer, int[]>(q, sortedReached);
+                })
+                .collect(Collectors.toMap(e -> e.getValue0(), e -> e.getValue1()));
+            for (int i = 0; i < queries.size(); i++) {
+                topKPerQuery[i] = reachables.get(queries.get(i));
+            }
+            topKPerS.put(thisS, topKPerQuery);
+        }
+        return topKPerS;
     }
 
     public void printVertexMap() {

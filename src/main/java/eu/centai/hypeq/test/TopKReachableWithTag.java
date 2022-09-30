@@ -1,6 +1,5 @@
 package eu.centai.hypeq.test;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import eu.centai.hypeq.oracle.structures.DistanceOracle;
 import eu.centai.hypeq.oracle.structures.DistanceProfile;
@@ -11,11 +10,9 @@ import eu.centai.hypeq.utils.CMDLParser;
 import eu.centai.hypeq.utils.Reader;
 import eu.centai.hypeq.utils.Settings;
 import eu.centai.hypeq.utils.StopWatch;
-import eu.centai.hypeq.utils.Utils;
 import eu.centai.hypeq.utils.Writer;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.javatuples.Pair;

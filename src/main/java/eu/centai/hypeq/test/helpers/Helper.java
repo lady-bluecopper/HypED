@@ -2,6 +2,7 @@ package eu.centai.hypeq.test.helpers;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import eu.centai.hyped.cc.ConnectedComponents;
 import eu.centai.hypeq.oracle.structures.DistanceOracle;
 import eu.centai.hypeq.oracle.structures.DistanceProfile;
@@ -103,6 +104,152 @@ public class Helper {
         return allApproxHDist;
     }
     
+    /**
+     * Finds the approximate s-centrality for the query elements, 
+     * using a distance oracle.
+     * 
+     * @param vMap for each vertex, the set of hyperedges including that vertex
+     * @param oracle distance oracle
+     * @param queries elements for which the s-centrality value must be computed
+     * @param s min overlap size
+     * @param kind kind of distance to compute, among "edge" (edge to edge),
+     * "vertex" (vertex to vertex), and "both" (vertex to edge)
+     * @return approximate s-centrality for each query element, computed 
+     * using the distance oracle
+     * @throws IOException 
+     */
+    public static Map<Integer, Double> findASCentralities(
+            Map<Integer, Set<Integer>> vMap,
+            DistanceOracle oracle,
+            Collection<Integer> queries,
+            int s,
+            String kind) throws IOException {
+        
+        return queries.parallelStream()
+                .map(e -> {
+                    if (kind.equalsIgnoreCase("edge")) {
+                        Map<Integer, Integer> distances = oracle.getOracle(s).getLabel(e);
+                        double sum = distances.values().stream().mapToInt(i -> i).sum();
+                        if (sum > 0) {
+                            return new Pair<Integer, Double>(e, (distances.size() - 1)/sum);
+                        }
+                        return new Pair<Integer, Double>(e, -1.);
+                    } else if (kind.equalsIgnoreCase("vertex") || kind.equalsIgnoreCase("both")) {
+                        Map<Integer, Integer> distances = Maps.newHashMap();
+                        for (int e1 : vMap.getOrDefault(e, Sets.newHashSet())) {
+                            Map<Integer, Integer> thisDistances = oracle.getOracle(s).getLabel(e1);
+                            thisDistances
+                                    .entrySet()
+                                    .forEach(en -> distances.merge(
+                                            en.getKey(), 
+                                            en.getValue(), 
+                                            (Integer t, Integer u) -> Integer.min(t, u)));
+                        }
+                        double sum = distances.values().stream().mapToInt(i -> i).sum();
+                        if (sum > 0) {
+                            return new Pair<Integer, Double>(e, (distances.size() - 1)/sum);
+                        }
+                        return new Pair<Integer, Double>(e, -1.);
+                    }
+                    throw new IllegalArgumentException("Kind " + kind + " not supported.");
+                })
+                .collect(Collectors.toMap(e -> e.getValue0(), e -> e.getValue1()));
+    }
+    
+    
+    /**
+     * Finds the approximate s-centrality for the query elements, 
+     * using a distance oracle.
+     * 
+     * @param vMap for each vertex, the set of hyperedges including that vertex
+     * @param oracle distance oracle
+     * @param queries query elements
+     * @param maxD
+     * @param k number of closest neighbors to find
+     * @param kind kind of distance to compute, among "edge" (edge to edge),
+     * "vertex" (vertex to vertex), and "both" (vertex to edge)
+     * @return for each s up to maxD, top-k elements s-reachable from each query, 
+     * computed using the distance oracle
+     * @throws IOException 
+     */
+    public static Map<Integer, int[][]> findATopKReachable(
+            Map<Integer, Set<Integer>> vMap,
+            DistanceOracle oracle,
+            List<Integer> queries,
+            int maxD,
+            int k,
+            String kind) throws IOException {
+        
+        Map<Integer, Set<Integer>> invMap = Maps.newHashMap();
+        if(kind.equalsIgnoreCase("vertex")) {
+            vMap.entrySet()
+                    .stream()
+                    .forEach(en -> {
+                        for(int e : en.getValue()) {
+                            Set<Integer> tmp = invMap.getOrDefault(e, Sets.newHashSet());
+                            tmp.add(en.getKey());
+                            invMap.put(e, tmp);
+                        }
+                    });
+        }
+        
+        Map<Integer, int[][]> topKPerS = Maps.newHashMap();
+        for (int s = 1; s <= maxD; s++) {
+            int[][] topKPerQuery = new int[queries.size()][k];
+            final int thisS = s;
+            Map<Integer, int[]> reachables = queries.stream()
+                .parallel()
+                .map(q -> {
+                    Map<Integer, Integer> reached = Maps.newHashMap();
+                    int[] sortedReached = new int[k];
+                    if (kind.equalsIgnoreCase("edge")) {
+                        reached = oracle.getOracle(thisS).getLabel(q);
+                    } else {
+                        for (int e1 : vMap.getOrDefault(q, Sets.newHashSet())) {
+                            Map<Integer, Integer> reachedFromE = oracle.getOracle(thisS).getLabel(e1);
+                            // find s-distance from e to all the reachable vertices
+                            for (Map.Entry<Integer, Integer> entry : reachedFromE.entrySet()) {
+                                if (kind.equalsIgnoreCase("vertex")) {
+                                    for (int ngb : invMap.get(entry.getKey())) {
+                                        reached.put(ngb, 
+                                                Math.min(reached.getOrDefault(ngb, Integer.MAX_VALUE), 
+                                                        entry.getValue()));
+                                    }
+                                } else {
+                                    reached.put(entry.getKey(), 
+                                            Math.min(reached.getOrDefault(entry.getKey(), Integer.MAX_VALUE), 
+                                                    entry.getValue()));
+                                }
+                            }
+                        }
+                    }
+                    List<Map.Entry<Integer, Integer>> topKReached = Lists.newArrayList(reached.entrySet());
+                    Collections.sort(topKReached, 
+                            (Map.Entry<Integer, Integer> e1, Map.Entry<Integer, Integer> e2) -> {
+                                if (e1.getValue().equals(e2.getValue())) {
+                                    return Integer.compare(e1.getKey(), e2.getKey());
+                                }
+                                return Integer.compare(e1.getValue(), e2.getValue());
+                            });
+                    int maxK = Math.min(k, topKReached.size());
+                    for (int i = 0; i < maxK; i++) {
+                        sortedReached[i] = topKReached.get(i).getKey();
+                    }
+                    for (int i = maxK; i < k; i++) {
+                        sortedReached[i] = -1;
+                    }
+                    return new Pair<Integer, int[]>(q, sortedReached);
+                })
+                .collect(Collectors.toMap(e -> e.getValue0(), e -> e.getValue1()));
+            for (int i = 0; i < queries.size(); i++) {
+                topKPerQuery[i] = reachables.get(queries.get(i));
+            }
+            topKPerS.put(thisS, topKPerQuery);
+        
+        }
+        return topKPerS;
+    }
+
     /**
      * Optimize lower and upper bounds to the s-distances, based on two observations.
      * 1. ub_s = min(ub_s, lb_{s+1})

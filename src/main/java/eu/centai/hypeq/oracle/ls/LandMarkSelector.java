@@ -8,6 +8,8 @@ import eu.centai.hypeq.oracle.ls.ra.BioConsert;
 import eu.centai.hypeq.structures.HyperGraph;
 import eu.centai.hypeq.utils.Settings;
 import eu.centai.hypeq.utils.Utils;
+import gr.james.sampling.LiLSampling;
+import gr.james.sampling.RandomSamplingCollector;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
@@ -462,6 +464,15 @@ public class LandMarkSelector {
             landmarks.add(canList.get(i));
         }
         return landmarks;
+        
+//        RandomSamplingCollector<Integer> landmarkCollector = LiLSampling.collector(
+//                numLandmarks, 
+//                rand);
+//        return candidates
+//                .stream()
+//                .collect(landmarkCollector)
+//                .stream()
+//                .collect(Collectors.toSet());
     }
     
     /**
@@ -472,9 +483,9 @@ public class LandMarkSelector {
      */
     private void randomSelection(Set<Integer> candidates, Set<Integer> currLandmarks) {
         List<Integer> canList = Lists.newArrayList(candidates);
-        Collections.shuffle(canList, rand);
-        currLandmarks.add(canList.get(0));
-        candidates.remove(canList.get(0));
+        int newLand = canList.get(rand.nextInt(canList.size()));
+        currLandmarks.add(newLand);
+        candidates.remove(newLand);
     }
     
     /**
