@@ -391,7 +391,7 @@ public class Utils {
      * @param rnd for reproducibility
      * @return elements selected from candidates
      */
-    private static List<Integer> selectItems(int numItems, 
+    public static List<Integer> selectItems(int numItems, 
             List<Integer> candidates, 
             Random rnd) {
         // if candidates does not include at least 2 hyperedges

@@ -16,7 +16,11 @@ public class CMDLParser {
     private static void parseArgs(String[] args) {
         for (String arg : args) {
             String[] parts = arg.split("=");
-            parseArg(parts[0], parts[1]);
+            try {
+                parseArg(parts[0], parts[1]);
+            } catch (ArrayIndexOutOfBoundsException ex) {
+                parseArg(parts[0], null);
+            }
         }
     }
 

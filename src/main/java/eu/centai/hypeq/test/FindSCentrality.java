@@ -1,5 +1,6 @@
 package eu.centai.hypeq.test;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import eu.centai.hypeq.oracle.structures.DistanceOracle;
 import eu.centai.hypeq.oracle.structures.DistanceProfile;
@@ -9,10 +10,14 @@ import eu.centai.hypeq.utils.CMDLParser;
 import eu.centai.hypeq.utils.Reader;
 import eu.centai.hypeq.utils.Settings;
 import eu.centai.hypeq.utils.StopWatch;
+import eu.centai.hypeq.utils.Utils;
 import eu.centai.hypeq.utils.Writer;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.javatuples.Pair;
 import org.javatuples.Triplet;
 
@@ -42,8 +47,22 @@ public class FindSCentrality {
         }
         Pair<DistanceOracle, Long> p = Helper.getDistanceOracle(graph, maxD);
         DistanceOracle oracle = p.getValue0();
-        System.out.println("loading queries...");
-        Collection<Integer> queries = Reader.readQueries(Settings.dataFolder + Settings.queryFile);
+        Collection<Integer> queries;
+        // if a query file has been specified
+        if (Settings.queryFile != null) {
+            System.out.println("loading queries...");
+            queries = Reader.readQueries(Settings.dataFolder + Settings.queryFile);
+        } else {
+            System.out.println("selecting queries...");
+            Random rnd = new Random(Settings.seed);
+            List<Integer> cands;
+            if (Settings.kind.equalsIgnoreCase("vertex")) {
+                cands = Lists.newArrayList(vMap.keySet());
+            } else {
+                cands = Lists.newArrayList(oracle.getCCsMemberships().get(1).keySet());
+            }
+            queries = Utils.selectItems(Settings.numQueries, cands, rnd);
+        }
         // find real closeness centrality
         Map<Integer, Double> reals = Maps.newHashMap();
         if (!Settings.isApproximate) {
