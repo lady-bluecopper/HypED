@@ -7,8 +7,10 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import eu.centai.hyped.cc.ConnectedComponents;
 import eu.centai.hyped.cc.WQUFPC;
+import eu.centai.hypeq.oracle.structures.DistanceOracle;
 import eu.centai.hypeq.oracle.structures.DistanceProfile;
 import eu.centai.hypeq.utils.Utils;
+import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.BitSet;
 import java.util.Collection;
@@ -783,7 +785,7 @@ public class HyperGraph {
         if (kind.equalsIgnoreCase("vertex") || kind.equalsIgnoreCase("both")) {
             return computeVertexSCentrality(sample, s);
         }
-        throw new IllegalArgumentException("Kind " + kind + " not available.");
+        throw new IllegalArgumentException("Kind " + kind + " not available.");  
     }
     
     /**
@@ -867,16 +869,25 @@ public class HyperGraph {
     public Map<Integer, Double> computeEdgeSCentrality(
             Collection<Integer> sample,
             int s) {
-
+        
         return sample
                 .parallelStream()
                 .map(e -> {
+                    // check if hyperedge has size < s
+                    if (getNumVerticesOf(e) < s) {
+                        return new Pair<>(e, 0.);
+                    }
                     Map<Integer, Integer> distances = findDistancesFrom(e, s);
                     double sum = distances.values().stream().mapToInt(i -> i).sum();
-                    if (sum > 0) {
-                        return new Pair<Integer, Double>(e, (distances.size() - 1)/sum);
+                    int numElem = distances.size() - 1;
+                    // map could contain e itself
+                    if (distances.containsKey(e)) {
+                        numElem --;
                     }
-                    return new Pair<Integer, Double>(e, -1.);
+                    if (numElem > 0) {
+                        return new Pair<>(e, numElem/sum);
+                    }
+                    return new Pair<>(e, 0.);
                 })
                 .collect(Collectors.toMap(k -> k.getValue0(), k -> k.getValue1()));
     }
@@ -952,25 +963,31 @@ public class HyperGraph {
     public Map<Integer, Double> computeVertexSCentrality(
             Collection<Integer> sample,
             int s) {
-
+        
         return sample
                 .parallelStream()
                 .map(v -> {
-                    Map<Integer, Integer> distances = Maps.newHashMap();
+                    if (getSHyperEdgesOf(v, s).isEmpty()) {
+                        return new Pair<>(v, 0.);
+                    }
+                    // a vertex can belong to many s-ccs; its s-centrality
+                    // value is the max among all the centralities 
+                    // (the smallest the value, the more central the vertex)
+                    double cent = 0.;
                     for (int e1 : getSHyperEdgesOf(v, s)) {
                         Map<Integer, Integer> thisDistances = findDistancesFrom(e1, s);
-                        thisDistances
-                                .entrySet()
-                                .forEach(en -> distances.merge(
-                                        en.getKey(), 
-                                        en.getValue(), 
-                                        (Integer t, Integer u) -> Integer.min(t, u)));
+                        // compute s-centrality of e1
+                        double sum = thisDistances.values().stream().mapToInt(i -> i).sum();
+                        int numElem = thisDistances.size() - 1;
+                        // map could contain e itself
+                        if (thisDistances.containsKey(e1)) {
+                            numElem --;
+                        }
+                        if (numElem > 0) {
+                            cent = Math.max(cent, numElem/sum);
+                        }
                     }
-                    double sum = distances.values().stream().mapToInt(i -> i).sum();
-                    if (sum > 0) {
-                        return new Pair<Integer, Double>(v, (distances.size() - 1)/sum);
-                    }
-                    return new Pair<Integer, Double>(v, -1.);
+                    return new Pair<>(v, cent);
                 })
                 .collect(Collectors.toMap(k -> k.getValue0(), k -> k.getValue1()));
     }

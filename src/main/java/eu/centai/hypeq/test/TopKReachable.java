@@ -3,8 +3,6 @@ package eu.centai.hypeq.test;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import eu.centai.hypeq.oracle.structures.DistanceOracle;
-import eu.centai.hypeq.oracle.structures.DistanceProfile;
-import eu.centai.hypeq.oracle.structures.ReachableProfile;
 import eu.centai.hypeq.structures.HyperGraph;
 import eu.centai.hypeq.test.helpers.Helper;
 import eu.centai.hypeq.utils.CMDLParser;
@@ -13,14 +11,11 @@ import eu.centai.hypeq.utils.Settings;
 import eu.centai.hypeq.utils.StopWatch;
 import eu.centai.hypeq.utils.Utils;
 import eu.centai.hypeq.utils.Writer;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.javatuples.Pair;
-import org.javatuples.Triplet;
 
 /**
  * Finds the top-k reachable elements from a query element, using the oracle.

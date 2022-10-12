@@ -533,7 +533,7 @@ public class DistanceOracle {
      * @param lb number of known s-overlaps between hyperedges in the s-connected component
      * @return approximate average s-distance among hyperedges in the s-connected component
      */
-    private double getApproxDistance(int size, int lb) {
+    public double getApproxDistance(int size, int lb) {
         // the pattern is a vertex
         if (size == 1) {
             return 0;

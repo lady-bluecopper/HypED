@@ -128,28 +128,61 @@ public class Helper {
         return queries.parallelStream()
                 .map(e -> {
                     if (kind.equalsIgnoreCase("edge")) {
+                        // check if hyperedge has size < s
+                        int cc_id = oracle.getIdOfSCC(e, s);
+                        if (cc_id == -1) {
+                            return new Pair<>(e, 0.);
+                        }
                         Map<Integer, Integer> distances = oracle.getOracle(s).getLabel(e);
-                        double sum = distances.values().stream().mapToInt(i -> i).sum();
-                        if (sum > 0) {
-                            return new Pair<Integer, Double>(e, (distances.size() - 1)/sum);
+                        // check if hyperedge belongs to a small s-cc
+                        if (distances.isEmpty()) {
+                            int cc_size = oracle.getSizeOf(s, cc_id);
+                            double approxSum = oracle.getApproxDistance(cc_size, 1) * (cc_size - 1);
+                            return new Pair<>(e, (cc_size - 1) / approxSum);
                         }
-                        return new Pair<Integer, Double>(e, -1.);
+                        // find sum of distances to reachable hyperedges
+                        double sum = distances.values().stream().mapToInt(i -> i).sum();
+                        int numElem = distances.size() - 1;
+                        // map could contain e itself
+                        if (distances.containsKey(e)) {
+                            numElem --;
+                        }
+                        return new Pair<>(e, numElem/sum);
                     } else if (kind.equalsIgnoreCase("vertex") || kind.equalsIgnoreCase("both")) {
-                        Map<Integer, Integer> distances = Maps.newHashMap();
+                        int cc_id = -1;
+                        // a vertex can belong to many s-ccs; its s-centrality
+                        // value is the max among all the centralities 
+                        // (the smallest the value, the more central the vertex)
+                        double approxCent = 0.;
+                        
                         for (int e1 : vMap.getOrDefault(e, Sets.newHashSet())) {
+                            // to determine if there is at least a hyperedge
+                            // including vertex e and with size >= s
+                            int thisID = oracle.getIdOfSCC(e1, s);
+                            if (thisID == -1) {
+                                continue;
+                            }
+                            cc_id = Math.max(cc_id, thisID);
+                            // check if hyperedge e1 belongs to a small component
                             Map<Integer, Integer> thisDistances = oracle.getOracle(s).getLabel(e1);
-                            thisDistances
-                                    .entrySet()
-                                    .forEach(en -> distances.merge(
-                                            en.getKey(), 
-                                            en.getValue(), 
-                                            (Integer t, Integer u) -> Integer.min(t, u)));
+                            if (thisDistances.isEmpty()) {
+                                int cc_size = oracle.getSizeOf(s, thisID);
+                                approxCent = Math.max(approxCent, oracle.getApproxDistance(cc_size, 1));
+                            } else {
+                                // otherwise compute its s-centrality
+                                double sum = thisDistances.values().stream().mapToInt(i -> i).sum();
+                                int numElem = thisDistances.size() - 1;
+                                // map could contain e itself
+                                if (thisDistances.containsKey(e)) {
+                                    numElem --;
+                                }
+                                approxCent = Math.max(approxCent, numElem/sum);
+                            }
                         }
-                        double sum = distances.values().stream().mapToInt(i -> i).sum();
-                        if (sum > 0) {
-                            return new Pair<Integer, Double>(e, (distances.size() - 1)/sum);
+                        if (cc_id == -1) {
+                            return new Pair<>(e, 0.);
                         }
-                        return new Pair<Integer, Double>(e, -1.);
+                        return new Pair<Integer, Double>(e, approxCent);
                     }
                     throw new IllegalArgumentException("Kind " + kind + " not supported.");
                 })
