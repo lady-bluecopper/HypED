@@ -237,6 +237,7 @@ public class Helper {
                     int[] sortedReached = new int[k];
                     if (kind.equalsIgnoreCase("edge")) {
                         reached = oracle.getOracle(thisS).getLabel(q);
+                        reached.remove(q);
                     } else {
                         for (int e1 : vMap.getOrDefault(q, Sets.newHashSet())) {
                             Map<Integer, Integer> reachedFromE = oracle.getOracle(thisS).getLabel(e1);
@@ -255,6 +256,7 @@ public class Helper {
                                 }
                             }
                         }
+                        reached.remove(q);
                     }
                     List<Map.Entry<Integer, Integer>> topKReached = Lists.newArrayList(reached.entrySet());
                     Collections.sort(topKReached, 
@@ -278,7 +280,6 @@ public class Helper {
                 topKPerQuery[i] = reachables.get(queries.get(i));
             }
             topKPerS.put(thisS, topKPerQuery);
-        
         }
         return topKPerS;
     }

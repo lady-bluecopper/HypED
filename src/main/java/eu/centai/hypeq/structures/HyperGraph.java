@@ -1135,6 +1135,7 @@ public class HyperGraph {
                             return new Pair<Integer, int[]>(q, sortedReached);
                         }
                         reached = findDistancesFrom(q, thisS, null, k, kind);
+                        reached.remove(q);
                     } else {
                         for (int e1 : getSHyperEdgesOf(q, thisS)) {
                             Map<Integer, Integer> reachedFromE = findDistancesFrom(e1, thisS, null, k, kind);
@@ -1153,6 +1154,7 @@ public class HyperGraph {
                                 }
                             }
                         }
+                        reached.remove(q);
                     }
                     List<Entry<Integer, Integer>> topKReached = Lists.newArrayList(reached.entrySet());
                     Collections.sort(topKReached, 
