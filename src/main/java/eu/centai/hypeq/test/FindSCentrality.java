@@ -3,7 +3,6 @@ package eu.centai.hypeq.test;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import eu.centai.hypeq.oracle.structures.DistanceOracle;
-import eu.centai.hypeq.oracle.structures.DistanceProfile;
 import eu.centai.hypeq.structures.HyperGraph;
 import eu.centai.hypeq.test.helpers.Helper;
 import eu.centai.hypeq.utils.CMDLParser;
@@ -17,9 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.javatuples.Pair;
-import org.javatuples.Triplet;
 
 /**
  * Class used to evaluate the performance and the accuracy of the oracle, when 

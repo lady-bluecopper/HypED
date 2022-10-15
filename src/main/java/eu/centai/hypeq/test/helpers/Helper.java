@@ -176,7 +176,9 @@ public class Helper {
                                 if (thisDistances.containsKey(e)) {
                                     numElem --;
                                 }
-                                approxCent = Math.max(approxCent, numElem/sum);
+                                if (numElem > 0) {
+                                    approxCent = Math.max(approxCent, numElem/sum);
+                                }
                             }
                         }
                         if (cc_id == -1) {

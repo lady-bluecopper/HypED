@@ -23,7 +23,7 @@ public class Settings {
     // lower-bound to the size of the s-ccs to consider for landmark assignment
     public static int lb = 4;
     // max overlap size s
-    public static int maxS = 3;
+    public static int maxS = 2;
     // importance of size (prob: alpha + beta <= 1; ranking: alpha <= 1)
     public static double alpha = 0.2;
     // importance of s (prob: alpha + beta <= 1; ranking: beta <= 1)
