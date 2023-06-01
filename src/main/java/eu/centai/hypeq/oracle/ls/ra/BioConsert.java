@@ -5,13 +5,16 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
 import eu.centai.hypeq.utils.Utils;
+import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import org.javatuples.Pair;
 import org.javatuples.Triplet;
 
@@ -37,48 +40,44 @@ public class BioConsert {
      * @return median ranking
      */
     public static List<List<Integer>> computeMedianRanking(
-            Map<Integer, Set<Integer>> sizeScores,
-            Map<Integer, Set<Integer>> vertexScores,
-            Map<Integer, Set<Integer>> sScores,
-            Map<Integer, Set<Integer>> landsScores,
+            Int2ObjectOpenHashMap<IntOpenHashSet> sizeScores,
+            Int2ObjectOpenHashMap<IntOpenHashSet> vertexScores,
+            Int2ObjectOpenHashMap<IntOpenHashSet> sScores,
+            Int2ObjectOpenHashMap<IntOpenHashSet> landsScores,
             double[] importance) {
 
         // from scores to rankings
         // each ranking is a map of buckets, where each bucket includes 
         // elements in the same position in that ranking
-        Map<Integer, Set<Integer>> rankBySize = fromScoreToRank(sizeScores, true);
-        Map<Integer, Set<Integer>> rankByVSize = fromScoreToRank(vertexScores, true); 
-        Map<Integer, Set<Integer>> rankByS = fromScoreToRank(sScores, true);
-        Map<Integer, Set<Integer>> rankByLands = fromScoreToRank(landsScores, false);
-        Map<Integer,Set<Integer>>[] rankings = new Map[]{
+        Int2ObjectOpenHashMap<int[]> rankBySize = fromScoreToRank(sizeScores, true);
+        Int2ObjectOpenHashMap<int[]> rankByVSize = fromScoreToRank(vertexScores, true); 
+        Int2ObjectOpenHashMap<int[]> rankByS = fromScoreToRank(sScores, true);
+        Int2ObjectOpenHashMap<int[]> rankByLands = fromScoreToRank(landsScores, false);
+        Int2ObjectOpenHashMap<int[]>[] rankings = new Int2ObjectOpenHashMap[]{
             rankBySize,
             rankByVSize,
             rankByS,
             rankByLands
         };
         // map element to canonical id
-        Map<Integer, Integer> elem_id = Maps.newHashMap();
+        Int2IntOpenHashMap elem_id = new Int2IntOpenHashMap();
         // map canonical id to element
-        Map<Integer, Integer> id_elements = Maps.newHashMap();
+        Int2IntOpenHashMap id_elements = new Int2IntOpenHashMap();
         // get distinct items
-        Set<Integer> items = IntStream.range(0, rankings.length)
-                .boxed()
-                .flatMap(r -> rankings[r].values()
-                        .stream()
-                        .flatMap(l -> l.stream()))
-                .collect(Collectors.toSet());
-        if (items.isEmpty()) {
+        rankBySize.values().stream().forEach(rank -> {
+            for (int v : rank) {
+                elem_id.putIfAbsent(v, elem_id.size());
+                id_elements.put(elem_id.get(v), v);
+            }
+        });
+        if (elem_id.isEmpty()) {
             return Lists.newArrayList();
         }
-        if (items.size() == 1) {
+        if (elem_id.size() == 1) {
             List<List<Integer>> out = Lists.newArrayList();
-            List<Integer> bucket = Lists.newArrayList(items);
+            List<Integer> bucket = Lists.newArrayList(elem_id.keySet());
             out.add(bucket);
             return out;
-        }
-        for (Integer item : items) {
-            elem_id.put(item, elem_id.size());
-            id_elements.put(id_elements.size(), item);
         }
         // unifying process: an element that does not appear in some ranking,
         // receives rank = max_rank + 1 in that ranking
@@ -427,8 +426,8 @@ public class BioConsert {
      * with their canonical ids
      */
     private static int[][] departureRankings(
-            Map<Integer, Set<Integer>>[] rankings, 
-            Map<Integer, Integer> elements_id) {
+            Int2ObjectOpenHashMap<int[]>[] rankings, 
+            Int2IntOpenHashMap elements_id) {
         // number of rankings
         int m = rankings.length;
         // number of distinct elements in the rankings
@@ -437,16 +436,16 @@ public class BioConsert {
         int[][] departure = new int[m][n];
         // iterate over all the rankings
         for (int id = 0; id < m; id++) {
-            Map<Integer, Set<Integer>> ranking = rankings[id];
+            Int2ObjectOpenHashMap<int[]> ranking = rankings[id];
             int maxRank = Collections.max(ranking.keySet()) + 1;
             final int rid = id;
             Arrays.fill(departure[id], maxRank);
-            ranking.entrySet()
+            ranking.int2ObjectEntrySet()
                     .stream()
                     .forEach(bucket -> {
-                        for (Integer element : bucket.getValue()) {
+                        for (int element : bucket.getValue()) {
                             // set corresponding ranking
-                            departure[rid][elements_id.get(element)] = bucket.getKey();
+                            departure[rid][elements_id.get(element)] = bucket.getIntKey();
                         }
                     });
         }
@@ -510,18 +509,21 @@ public class BioConsert {
      * @param reverse if higher scores indicate higher ranks
      * @return ranking of the elements based on their score
      */
-    private static Map<Integer, Set<Integer>> fromScoreToRank(
-            Map<Integer, Set<Integer>> scores, 
+    private static Int2ObjectOpenHashMap<int[]> fromScoreToRank(
+            Int2ObjectOpenHashMap<IntOpenHashSet> scores, 
             boolean reverse) {
-        List<Integer> scoreList = Lists.newArrayList(scores.keySet());
+        int[] scoreList = Ints.toArray(scores.keySet());
+        Arrays.sort(scoreList);
+        
+        Int2ObjectOpenHashMap<int[]> ranking = new Int2ObjectOpenHashMap();
         if (reverse) {
-            Collections.sort(scoreList, (Integer o1, Integer o2) -> -Integer.compare(o1, o2));
-        } else {
-            Collections.sort(scoreList);
+            for (int i = scoreList.length - 1; i >= 0; i--) {
+                ranking.put(i, Ints.toArray(scores.get(scoreList[i])));
+            }
+            return ranking;
         }
-        Map<Integer, Set<Integer>> ranking = Maps.newHashMap();
-        for (int i = 0; i < scoreList.size(); i++) {
-            ranking.put(i, scores.get(scoreList.get(i)));
+        for (int i = 0; i < scoreList.length; i++) {
+            ranking.put(i, Ints.toArray(scores.get(scoreList[i])));
         }
         return ranking;
     }

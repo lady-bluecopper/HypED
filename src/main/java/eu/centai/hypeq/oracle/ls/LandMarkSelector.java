@@ -10,6 +10,8 @@ import eu.centai.hypeq.utils.Settings;
 import eu.centai.hypeq.utils.Utils;
 import gr.james.sampling.LiLSampling;
 import gr.james.sampling.RandomSamplingCollector;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
@@ -23,6 +25,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.javatuples.Pair;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 
 /**
  *
@@ -85,23 +88,22 @@ public class LandMarkSelector {
                 .parallel()
                 .forEach(s -> {
                     IntStream.range(0, CCS.getSCCs(s+1).size())
-                            .forEach(i -> {
-                                int size = CCS.getSCCs(s+1).get(i).size();
-                                int pos = 0;
-                                if (s > 0) {
-                                    pos = cumSum[s-1];
-                                }
-                                if (size > lb) {
-                                    allCCs[pos + i] = size;
-                                    int numV = CCS.getSCCs(s+1).get(i).stream()
-                                        .flatMap(id -> graph.getVerticesOf(id).stream())
-                                        .collect(Collectors.toSet())
-                                        .size();
-                                    allVs[pos + i] = numV;
-                                    
-                                }
-                                allSs[pos + i] = s + 1;
-                            });
+                        .forEach(i -> {
+                            int size = CCS.getSCCs(s+1).get(i).size();
+                            int pos = 0;
+                            if (s > 0) {
+                                pos = cumSum[s-1];
+                            }
+                            if (size > lb) {
+                                allCCs[pos + i] = size;
+                                int numV = CCS.getSCCs(s+1).get(i).stream()
+                                    .flatMap(id -> graph.getVerticesOf(id).stream())
+                                    .collect(Collectors.toSet())
+                                    .size();
+                                allVs[pos + i] = numV;
+                            }
+                            allSs[pos + i] = s + 1;
+                        });
                 });
         
         if (assMethod.equalsIgnoreCase("ranking")) {
@@ -263,45 +265,45 @@ public class LandMarkSelector {
         
         int total = allCCs.length;
         // for each s-cc, store the set of candidate landmarks
-        Set<Integer>[] candsMap = new Set[total];
+        IntOpenHashSet[] candsMap = new IntOpenHashSet[total];
         // if method is betweenness/bestcover, we need to store the paths 
         // to which the candidate landmarks belong
         Map<Integer, Set<Integer>>[] pathsInSample = new Map[total];
         // create rankings
         // -- ranking by size
-        Map<Integer, Set<Integer>> tmp1 = IntStream.range(0, total)
-                .boxed()
-                .filter(i -> allCCs[i] > 0)
-                .map(i -> new Pair<Integer, Integer>(allCCs[i], i))
-                .collect(Collectors.groupingBy(p -> p.getValue0(), 
-                        Collectors.mapping(p -> p.getValue1(), Collectors.toSet())));
+        Int2ObjectOpenHashMap<IntOpenHashSet> tmp1 = new Int2ObjectOpenHashMap();
         // -- ranking by vertex size
-        Map<Integer, Set<Integer>> tmp2 = IntStream.range(0, total)
-                .boxed()
-                .filter(i -> allCCs[i] > 0)
-                .map(i -> new Pair<Integer, Integer>(allVs[i], i))
-                .collect(Collectors.groupingBy(p -> p.getValue0(), 
-                        Collectors.mapping(p -> p.getValue1(), Collectors.toSet())));
+        Int2ObjectOpenHashMap<IntOpenHashSet> tmp2 = new Int2ObjectOpenHashMap();
         // -- ranking by s value
-        Map<Integer, Set<Integer>> tmp3 = IntStream.range(0, total)
-                .boxed()
-                .filter(i -> allCCs[i] > 0)
-                .map(i -> new Pair<Integer, Integer>(allSs[i], i))
-                .collect(Collectors.groupingBy(p -> p.getValue0(), 
-                        Collectors.mapping(p -> p.getValue1(), Collectors.toSet())));
+        Int2ObjectOpenHashMap<IntOpenHashSet> tmp3 = new Int2ObjectOpenHashMap();
         // -- ranking by landmarks (includes only the selectable)
-        Map<Integer, Set<Integer>> tmp4 = Maps.newHashMap();
-        tmp4.put(0, IntStream.range(0, total)
-                .filter(i -> allCCs[i] > 0)
-                .boxed()
-                .collect(Collectors.toSet()));
+        Int2ObjectOpenHashMap<IntOpenHashSet> tmp4 = new Int2ObjectOpenHashMap();
+        tmp4.put(0, new IntOpenHashSet());
+        
+        for (int i = 0; i < allCCs.length; i++) {
+            if (allCCs[i] > 0) {
+                if (!tmp1.containsKey(allCCs[i])) {
+                    tmp1.put(allCCs[i], new IntOpenHashSet());
+                }
+                tmp1.get(allCCs[i]).add(i);
+                if (!tmp2.containsKey(allVs[i])) {
+                    tmp2.put(allVs[i], new IntOpenHashSet());
+                }
+                tmp2.get(allVs[i]).add(i);
+                if (!tmp3.containsKey(allSs[i])) {
+                    tmp3.put(allSs[i], new IntOpenHashSet());
+                }
+                tmp3.get(allSs[i]).add(i);
+                tmp4.get(0).add(i);
+            }
+        }
         // candidates for each connected component
         IntStream.range(0, total)
                 .filter(i -> allCCs[i] > 0)
                 .forEach(i -> {
                     int s = getSFromPos(cumSum, i);
                     int drift = (s > 1) ? cumSum[s-2] : 0;
-                    candsMap[i] = Sets.newHashSet(CCS.getSCCs(s).get(i - drift));
+                    candsMap[i] = new IntOpenHashSet(CCS.getSCCs(s).get(i - drift));
                 });
         // initial ranking
         List<List<Integer>> med = BioConsert.computeMedianRanking(tmp1, tmp2, tmp3, tmp4, importance);
@@ -312,7 +314,6 @@ public class LandMarkSelector {
         Map<Integer, Set<Integer>> landmarksAssigned = Maps.newHashMap();
         // select landmarks until we reach the budget size
         int s, oldLands, sel;
-        Set<Integer> tmp4bis;
         while (estOracleSize < budget) {
             // take one of the best ranked s-ccs, at random
             List<Integer> best = med.get(0);
@@ -321,7 +322,7 @@ public class LandMarkSelector {
             s = getSFromPos(cumSum, sel);
             // get candidates and landmarks selected for candSCC
             Set<Integer> alreadyAssigned = landmarksAssigned.getOrDefault(sel, Sets.newHashSet());
-            Set<Integer> candidates = candsMap[sel];
+            IntOpenHashSet candidates = candsMap[sel];
             Map<Integer, Set<Integer>> paths = pathsInSample[sel];
             if (paths == null) {
                 paths = Maps.newHashMap();
@@ -355,9 +356,10 @@ public class LandMarkSelector {
                 }
             } else {
                 int newLands = alreadyAssigned.size();
-                tmp4bis = tmp4.getOrDefault(newLands, Sets.newHashSet());
-                tmp4bis.add(sel);
-                tmp4.put(newLands, tmp4bis);
+                if (!tmp4.containsKey(newLands)) {
+                    tmp4.put(newLands, new IntOpenHashSet());
+                }
+                tmp4.get(newLands).add(sel);
             }
             // stop the search if there are no candidate left
             if (tmp1.isEmpty()) {

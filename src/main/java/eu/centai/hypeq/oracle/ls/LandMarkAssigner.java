@@ -127,7 +127,10 @@ public class LandMarkAssigner {
         while (assigned < totalItems) {
             // select next cc
             p = rand.nextDouble();
-            id = (Arrays.binarySearch(probs, p) + 1) * -1;
+            id = Arrays.binarySearch(probs, p);
+            if (id < 0) {
+                id = (id + 1) * -1;
+            }
             i = invMap.get(id);
             if (numItems[i] == ccsSizes[i]) {
                 zeros.set(i, false);
