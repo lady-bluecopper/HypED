@@ -427,7 +427,7 @@ public class Helper {
                     Settings.numLandmarks, Settings.lb, importance, 
                     false, Settings.seed);
             creationTime = watch.getElapsedTime();
-            System.out.println("oracle created in (s) " + creationTime);
+            System.out.println("oracle created in (ms) " + creationTime);
             if (Settings.store) {
                 Writer.writeOracle(oracle);
                 System.out.println("oracle written on disk.");

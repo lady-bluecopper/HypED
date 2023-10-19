@@ -97,10 +97,12 @@ public class Reader {
         List<HyperEdge> edges = Lists.newArrayList();
         String line;
         int counter = 0;
+        Set<Integer> tmp;
+        String[] parts;
 
         while ((line = rows.readLine()) != null) {
-            String[] parts = line.split(" ");
-            Set<Integer> tmp = Sets.newHashSet();
+            parts = line.split(" ");
+            tmp = Sets.newHashSet();
             for (String p : parts) {
                 tmp.add(Integer.parseInt(p));
             }
@@ -109,6 +111,7 @@ public class Reader {
             counter++;
         }
         rows.close();
+        System.out.println("Num Hyperedges=" + edges.size());
         return edges;
     }
     

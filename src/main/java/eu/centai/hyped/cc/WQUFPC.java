@@ -213,10 +213,10 @@ public class WQUFPC {
             vMap.put(v.getIndex(), counter);
             counter ++;
         }
-        graph.getAdjMap().entrySet().forEach(e -> {
-            int p = vMap.get(e.getKey());
-            for (Pair<Integer, Integer> pair : e.getValue()) {
-                int q = vMap.get(pair.getValue0());
+        graph.getAdjMap().int2ObjectEntrySet().forEach(e -> {
+            int p = vMap.get(e.getIntKey());
+            for (int[] pair : e.getValue()) {
+                int q = vMap.get(pair[0]);
                 if (p < q) {
                     if (find(p) == find(q)) {
                         continue;

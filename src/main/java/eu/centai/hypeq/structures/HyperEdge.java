@@ -16,13 +16,11 @@ public class HyperEdge {
     private final int id;
     private final Set<Integer> vertices;
     private final Map<Integer, Integer> neighbours;
-    private final int size;
     
     public HyperEdge(int id, Set<Integer> vertices) {
         this.id = id;
         this.vertices = vertices;
         this.neighbours = Maps.newHashMap();
-        this.size = vertices.size();
     }
     
     public Set<Integer> getVertices() {
@@ -30,7 +28,7 @@ public class HyperEdge {
     }
     
     public int getNumVertices() {
-        return size;
+        return this.vertices.size();
     }
     
     /**

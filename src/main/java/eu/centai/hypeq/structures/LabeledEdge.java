@@ -19,6 +19,10 @@ public class LabeledEdge implements Serializable {
     public String toString() {
         return "[" + src + "-" + dst + ", " + label + "]";
     }
+    
+    public String toSimpleString() {
+        return src + "\t" + dst + "\t " + label;
+    }
 
     @Override
     public boolean equals(Object o) {

@@ -9,6 +9,8 @@ import eu.centai.hypeq.oracle.structures.DistanceProfile;
 import eu.centai.hypeq.oracle.structures.OracleSerializer;
 import eu.centai.hypeq.oracle.structures.SDistanceOracle;
 import eu.centai.hypeq.oracle.structures.SOracleSerializer;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
@@ -332,15 +334,15 @@ public class Writer {
      * @param s max overlap size
      * @throws IOException
      */
-    public static void writeLineGraph(Map<Integer, Set<Pair<Integer, Integer>>> lineGraph, int s) throws IOException {
+    public static void writeLineGraph(Int2ObjectOpenHashMap<ObjectArrayList<int[]>> lineGraph, int s) throws IOException {
 
         String fName = Settings.dataFile.substring(0, Settings.dataFile.length() - 3)
                 + "_S" + s + ".lg";
         FileWriter fwP = new FileWriter(Settings.outputFolder + fName);
-        lineGraph.entrySet().forEach(entry -> 
+        lineGraph.int2ObjectEntrySet().forEach(entry -> 
                 entry.getValue().stream().forEach(pair -> {
                     try {
-                        fwP.write(entry.getKey() + " " + pair.getValue0() + "\n");
+                        fwP.write(entry.getIntKey() + " " + pair[0] + "\n");
                     } catch (IOException ex) {
                         ex.printStackTrace();
                     }
