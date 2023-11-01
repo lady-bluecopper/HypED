@@ -341,10 +341,12 @@ public class Writer {
         FileWriter fwP = new FileWriter(Settings.outputFolder + fName);
         lineGraph.int2ObjectEntrySet().forEach(entry -> 
                 entry.getValue().stream().forEach(pair -> {
-                    try {
-                        fwP.write(entry.getIntKey() + " " + pair[0] + "\n");
-                    } catch (IOException ex) {
-                        ex.printStackTrace();
+                    if (entry.getIntKey() < pair[0]) {
+                        try {
+                            fwP.write(entry.getIntKey() + " " + pair[0] + "\n");
+                        } catch (IOException ex) {
+                            ex.printStackTrace();
+                        }
                     }
                 })
         );

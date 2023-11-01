@@ -19,6 +19,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Set;
@@ -907,17 +908,21 @@ public class HyperGraph {
                 .map(pair -> {
                     DistanceProfile dp = new DistanceProfile(pair.getValue0(), pair.getValue1());
                     for (int i = 1; i <= maxS; i++) {
-                        int d = Integer.MAX_VALUE;
-                        for (int e1 : getSHyperEdgesOf(pair.getValue0(), i)) {
-                            for (int e2 : getSHyperEdgesOf(pair.getValue1(), i)) {
-                                int pathSize = bidirectionalSPSearch(e1, e2, i, getNumEdges()).size() - 1;
-                                if (pathSize > 0) {
-                                    d = Math.min(d, pathSize);
+                        if (pair.getValue0().equals(pair.getValue1())) {
+                            dp.addDistance(i, 0);
+                        } else {
+                            int d = Integer.MAX_VALUE;
+                            for (int e1 : getSHyperEdgesOf(pair.getValue0(), i)) {
+                                for (int e2 : getSHyperEdgesOf(pair.getValue1(), i)) {
+                                    int pathSize = bidirectionalSPSearch(e1, e2, i, getNumEdges()).size() - 1;
+                                    if (pathSize > 0) {
+                                        d = Math.min(d, pathSize);
+                                    }
                                 }
                             }
-                        }
-                        if (d != Integer.MAX_VALUE) {
-                            dp.addDistance(i, d);
+                            if (d != Integer.MAX_VALUE) {
+                                dp.addDistance(i, d);
+                            }
                         }
                     }
                     return new Pair<Pair<Integer, Integer>, DistanceProfile>(pair, dp);
@@ -937,17 +942,21 @@ public class HyperGraph {
                 .parallelStream()
                 .map(tri -> {
                     DistanceProfile dp = new DistanceProfile(tri.getValue0(), tri.getValue1());
-                    int d = Integer.MAX_VALUE;
-                    for (int e1 : getSHyperEdgesOf(tri.getValue0(), tri.getValue2())) {
-                        for (int e2 : getSHyperEdgesOf(tri.getValue1(), tri.getValue2())) {
-                            int pathSize = bidirectionalSPSearch(e1, e2, tri.getValue2(), getNumEdges()).size() - 1;
-                            if (pathSize > 0) {
-                                d = Math.min(d, pathSize);
+                    if (tri.getValue0().equals(tri.getValue1())) {
+                        dp.addDistance(tri.getValue2(), 0);
+                    } else {
+                        int d = Integer.MAX_VALUE;
+                        for (int e1 : getSHyperEdgesOf(tri.getValue0(), tri.getValue2())) {
+                            for (int e2 : getSHyperEdgesOf(tri.getValue1(), tri.getValue2())) {
+                                int pathSize = bidirectionalSPSearch(e1, e2, tri.getValue2(), getNumEdges()).size() - 1;
+                                if (pathSize > 0) {
+                                    d = Math.min(d, pathSize);
+                                }
                             }
                         }
-                    }
-                    if (d != Integer.MAX_VALUE) {
-                        dp.addDistance(tri.getValue2(), d);
+                        if (d != Integer.MAX_VALUE) {
+                            dp.addDistance(tri.getValue2(), d);
+                        }
                     }
                     return new Pair<Pair<Integer, Integer>, DistanceProfile>(new Pair<>(tri.getValue0(), tri.getValue1()), dp);
                 })

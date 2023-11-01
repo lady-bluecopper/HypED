@@ -30,7 +30,6 @@ public class LineGraph {
     public LineGraph(List<HyperEdge> hyperedges) {
         this.nodes = new ObjectArrayList(hyperedges.size());
         this.adj = new Int2ObjectOpenHashMap(hyperedges.size());
-        this.adj.defaultReturnValue(ObjectArrayList.of());
         this.numEdges = -1;
         initialize(hyperedges);
         System.out.println("LineGraph Initialized.");
@@ -62,7 +61,6 @@ public class LineGraph {
     public void setNodes(ObjectArrayList<LabeledNode> nodes) {
         this.nodes = nodes;
         this.adj = new Int2ObjectOpenHashMap(nodes.size());
-        this.adj.defaultReturnValue(ObjectArrayList.of());
     }
     
     /**
@@ -95,7 +93,7 @@ public class LineGraph {
         ngb.defaultReturnValue(0);
         ObjectArrayList<LabeledEdge> edges = new ObjectArrayList();
         for (int v : edge.getVertices()) {
-            for (int idx : index.getOrDefault(v, IntArrayList.of())) {
+            for (int idx : index.getOrDefault(v, new IntArrayList())) {
                 if (edge.getId() != idx) {
                     ngb.addTo(idx, 1);
                 }
@@ -122,7 +120,6 @@ public class LineGraph {
         ObjectBigArrayBigList<LabeledEdge> edges = new ObjectBigArrayBigList();
         // dynamic index
         Int2ObjectOpenHashMap<IntArrayList> index = new Int2ObjectOpenHashMap();
-        index.defaultReturnValue(IntArrayList.of());
         int counter = 0;
         for (HyperEdge edge : hyperedges) {
             nodes.add(new LabeledNode(edge.getId(), edge.getNumVertices()));
@@ -130,7 +127,7 @@ public class LineGraph {
             edges.addAll(findEdges(edge, index));
             // add edge to dynamic index
             for (int v: edge.getVertices()) {
-                IntArrayList tmp = index.get(v);
+                IntArrayList tmp = index.getOrDefault(v, new IntArrayList());
                 tmp.add(edge.getId());
                 index.put(v, tmp);
             }
@@ -148,7 +145,6 @@ public class LineGraph {
     private void findAndSave(List<HyperEdge> hyperedges, FileWriter fw) throws IOException {
         // dynamic index
         Int2ObjectOpenHashMap<IntArrayList> index = new Int2ObjectOpenHashMap();
-        index.defaultReturnValue(IntArrayList.of());
         ObjectArrayList<LabeledEdge> currEdges;
         int counter = 0;
         for (HyperEdge edge : hyperedges) {
@@ -156,7 +152,7 @@ public class LineGraph {
             currEdges = findEdges(edge, index);
             // add edge to dynamic index
             for (int v: edge.getVertices()) {
-                IntArrayList tmp = index.get(v);
+                IntArrayList tmp = index.getOrDefault(v, new IntArrayList());
                 tmp.add(edge.getId());
                 index.put(v, tmp);
             }
@@ -179,10 +175,10 @@ public class LineGraph {
         long start = System.currentTimeMillis();
         ObjectArrayList<int[]> tmp;
         for (LabeledEdge e : edges) {
-            tmp = adj.get(e.getSrc());
+            tmp = adj.getOrDefault(e.getSrc(), new ObjectArrayList());
             tmp.add(new int[]{e.getDst(), e.getLabel()});
             adj.put(e.getSrc(), tmp);
-            tmp = adj.get(e.getDst());
+            tmp = adj.getOrDefault(e.getDst(), new ObjectArrayList());
             tmp.add(new int[]{e.getSrc(), e.getLabel()});
             adj.put(e.getDst(), tmp);
         }
@@ -221,7 +217,7 @@ public class LineGraph {
      * @return neighbours of node
      */
     public ObjectArrayList<int[]> getNeighbours(int node) {
-        return adj.get(node);
+        return adj.getOrDefault(node, new ObjectArrayList());
     } 
     
     /**
@@ -253,7 +249,6 @@ public class LineGraph {
                 .filter(n -> n.getLabel() >= s)
                 .collect(Collectors.toList());
         Int2ObjectOpenHashMap<ObjectArrayList<int[]>> sEdges = new Int2ObjectOpenHashMap(adj.size());
-        sEdges.defaultReturnValue(ObjectArrayList.of());
         for (LabeledNode node : sNodes) {
             ObjectArrayList ngb = new ObjectArrayList(
                     getNeighbours(node.getIndex()).stream()
